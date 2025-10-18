@@ -1,0 +1,27 @@
+# Project build artifacts
+**/target/
+
+# Logs and runtime data
+*.log
+hs_err_pid*.log
+
+# IDE configuration
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.factorypath
+.vscode/
+out/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+
+# Environment files
+.env
+.env.*
+
