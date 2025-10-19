@@ -16,6 +16,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
 
 /**
@@ -45,6 +47,9 @@ public class User extends RepresentationModel<User> {
 	@ManyToMany
 	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
 	private Set<Role> roles = new HashSet<>();
+
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+	private Set<Device> devices = new HashSet<>();
 
 	public User() {
 		/* default */}
@@ -132,6 +137,24 @@ public class User extends RepresentationModel<User> {
 
 	public void removeRole(Role role) {
 		this.roles.remove(role);
+	}
+
+	public Set<Device> getDevices() {
+		return devices;
+	}
+
+	public void setDevices(Set<Device> devices) {
+		this.devices = devices;
+	}
+
+	public void addDevice(Device device) {
+		this.devices.add(device);
+		device.setUser(this);
+	}
+
+	public void removeDevice(Device device) {
+		// Removing from collection is enough; orphanRemoval=true will delete the device
+		this.devices.remove(device);
 	}
 
 	// /**
