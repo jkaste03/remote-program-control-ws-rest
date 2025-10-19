@@ -5,11 +5,11 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.1.0</version>
+		<version>3.5.6</version>
 		<relativePath/>
 		<!-- lookup parent from repository -->
 	</parent>
-	<groupId>no.hvl.dat152.rest</groupId>
+	<groupId>com.github.jkaste03</groupId>
 	<artifactId>remote-program-control-spring-ws-rest</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>remote-program-control-spring-ws-rest</name>
