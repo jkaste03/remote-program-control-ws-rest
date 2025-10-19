@@ -4,14 +4,16 @@
 package com.github.jkaste03.security;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.github.jkaste03.model.Role;
 import com.github.jkaste03.model.User;
 
 /**
@@ -29,6 +31,8 @@ public class UserDetailsImpl implements UserDetails {
 
 	private String email;
 
+	private Set<Role> roles;
+
 	// private String password;
 
 	private Collection<? extends GrantedAuthority> authorities;
@@ -37,11 +41,12 @@ public class UserDetailsImpl implements UserDetails {
 	}
 
 	public UserDetailsImpl(Long userid, String firstname, String lastname,
-			String email, Collection<? extends GrantedAuthority> authorities) {
+			String email, Set<Role> roles, Collection<? extends GrantedAuthority> authorities) {
 		this.userid = userid;
 		this.firstname = firstname;
 		this.lastname = lastname;
 		this.email = email;
+		this.roles = roles;
 		// this.password = password;
 		this.authorities = authorities;
 	}
@@ -56,6 +61,7 @@ public class UserDetailsImpl implements UserDetails {
 				user.getFirstname(),
 				user.getLastname(),
 				user.getEmail(),
+				user.getRoles(),
 				// user.getPassword(),
 				authorities);
 	}
@@ -67,6 +73,7 @@ public class UserDetailsImpl implements UserDetails {
 				user.getFirstname(),
 				user.getLastname(),
 				user.getEmail(),
+				user.getRoles(),
 				// user.getPassword(),
 				authorities);
 	}
@@ -99,6 +106,10 @@ public class UserDetailsImpl implements UserDetails {
 		return email;
 	}
 
+	public Set<Role> getRoles() {
+		return roles;
+	}
+
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 
@@ -124,6 +135,10 @@ public class UserDetailsImpl implements UserDetails {
 	 */
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public void setRoles(Set<Role> roles) {
+		this.roles = roles;
 	}
 
 	/**
