@@ -9,11 +9,13 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.github.jkaste03.exceptions.UserNotFoundException;
@@ -47,10 +49,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 				// update security context with the userDetail object
 				UserDetailsImpl userDetails = getUserDetails(jwt, oauthJwtToken);
 
-				oauthJwtToken.setDetails(userDetails); // this is a hack!!! - using setDetails(Object) to
-														// encapsulate userDetails
+				UsernamePasswordAuthenticationToken userAuthentication =
+						new UsernamePasswordAuthenticationToken(userDetails, jwt, userDetails.getAuthorities());
+				userAuthentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-				SecurityContextHolder.getContext().setAuthentication(oauthJwtToken);
+				SecurityContextHolder.getContext().setAuthentication(userAuthentication);
 
 			} catch (Exception e) {
 				LOGGER.error("Failed to update token authentication with user details: {}", e);
