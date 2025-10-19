@@ -51,7 +51,7 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
 		String last = safe(jwt.getClaimAsString("family_name"));
 
 		User user = provisioningService.ensureUserExists(email, first, last);
-		UserPrincipal principal = new UserPrincipal(user.getUserid(), user.getFirstname(), user.getLastname(),
+		UserPrincipal principal = new UserPrincipal(user.getId(), user.getFirstName(), user.getLastName(),
 				user.getEmail(), user.getRoles());
 
 		return new UsernamePasswordAuthenticationToken(principal, jwt, authorities);

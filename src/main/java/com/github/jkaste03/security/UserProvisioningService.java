@@ -25,20 +25,17 @@ public class UserProvisioningService {
 		if (existing.isPresent()) {
 			User user = existing.get();
 			boolean updated = false;
-			if (!Objects.equals(firstName, user.getFirstname())) {
-				user.setFirstname(firstName);
+			if (!Objects.equals(firstName, user.getFirstName())) {
+				user.setFirstName(firstName);
 				updated = true;
 			}
-			if (!Objects.equals(lastName, user.getLastname())) {
-				user.setLastname(lastName);
+			if (!Objects.equals(lastName, user.getLastName())) {
+				user.setLastName(lastName);
 				updated = true;
 			}
 			return updated ? userRepository.save(user) : user;
 		}
-		User u = new User();
-		u.setEmail(email);
-		u.setFirstname(firstName);
-		u.setLastname(lastName);
-		return userRepository.save(u);
+		User user = new User(email, firstName, lastName);
+		return userRepository.save(user);
 	}
 }

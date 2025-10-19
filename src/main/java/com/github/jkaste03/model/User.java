@@ -1,15 +1,16 @@
-/**
- * 
- */
 package com.github.jkaste03.model;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
-import org.springframework.hateoas.RepresentationModel;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -17,25 +18,22 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
 
-/**
- * @author tdoy
- */
 @Entity
 @Table(name = "users")
-public class User extends RepresentationModel<User> {
+public class User {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.AUTO)
-	private Long userid;
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "userid")
+	private Long id;
 
-	@Column(nullable = false)
-	private String firstname;
+	@Column(name = "firstname", nullable = false, length = 50)
+	private String firstName;
 
-	@Column(nullable = false)
-	private String lastname;
+	@Column(name = "lastname", nullable = false, length = 50)
+	private String lastName;
 
 	@Column(nullable = false, length = 50, unique = true)
 	private String email;
@@ -43,96 +41,66 @@ public class User extends RepresentationModel<User> {
 	// @Column(nullable = false, length = 64)
 	// @JsonIgnore
 	// private String password;
-
-	@ManyToMany
+	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-	private Set<Role> roles = new HashSet<>();
+	private final Set<Role> roles = new HashSet<>();
 
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-	private Set<Device> devices = new HashSet<>();
+	@JsonManagedReference(value = "user-devices")
+	private final Set<Device> devices = new HashSet<>();
 
-	public User() {
-		/* default */}
+	protected User() {
+		/* for JPA */ }
 
-	public User(String email, String firstname, String lastname) {
+	public User(String email, String firstName, String lastName) {
 		this.email = email;
-		// this.password = password;
-		this.firstname = firstname;
-		this.lastname = lastname;
+		this.firstName = firstName;
+		this.lastName = lastName;
 	}
 
-	/**
-	 * @return the userid
-	 */
-	public Long getUserid() {
-		return userid;
+	public Long getId() {
+		return id;
 	}
 
-	/**
-	 * @param userid the userid to set
-	 */
-	public void setUserid(Long userid) {
-		this.userid = userid;
+	public String getFirstName() {
+		return firstName;
 	}
 
-	/**
-	 * @return the firstname
-	 */
-	public String getFirstname() {
-		return firstname;
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
 	}
 
-	/**
-	 * @param firstname the firstname to set
-	 */
-	public void setFirstname(String firstname) {
-		this.firstname = firstname;
+	public String getLastName() {
+		return lastName;
 	}
 
-	/**
-	 * @return the lastname
-	 */
-	public String getLastname() {
-		return lastname;
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
 	}
 
-	/**
-	 * @param lastname the lastname to set
-	 */
-	public void setLastname(String lastname) {
-		this.lastname = lastname;
-	}
-
-	/**
-	 * @return the email
-	 */
 	public String getEmail() {
 		return email;
 	}
 
-	/**
-	 * @param email the email to set
-	 */
 	public void setEmail(String email) {
 		this.email = email;
 	}
 
-	/**
-	 * @return the roles
-	 */
 	public Set<Role> getRoles() {
-		return roles;
+		return Collections.unmodifiableSet(roles);
 	}
 
-	/**
-	 * @param roles the roles to set
-	 */
 	public void setRoles(Set<Role> roles) {
-		this.roles = roles;
+		this.roles.clear();
+		if (roles != null) {
+			roles.forEach(this::addRole);
+		}
 	}
 
 	public void addRole(Role role) {
-		this.roles.add(role);
+		if (role != null) {
+			this.roles.add(role);
+		}
 	}
 
 	public void removeRole(Role role) {
@@ -140,35 +108,51 @@ public class User extends RepresentationModel<User> {
 	}
 
 	public Set<Device> getDevices() {
-		return devices;
+		return Collections.unmodifiableSet(devices);
 	}
 
 	public void setDevices(Set<Device> devices) {
-		this.devices = devices;
+		this.devices.clear();
+		if (devices != null) {
+			devices.forEach(this::addDevice);
+		}
 	}
 
 	public void addDevice(Device device) {
-		this.devices.add(device);
+		if (device == null || devices.contains(device)) {
+			return;
+		}
+		devices.add(device);
 		device.setUser(this);
 	}
 
 	public void removeDevice(Device device) {
-		// Removing from collection is enough; orphanRemoval=true will delete the device
-		this.devices.remove(device);
+		if (device == null) {
+			return;
+		}
+		if (devices.remove(device)) {
+			device.setUser(null);
+		}
 	}
 
-	// /**
-	// * @param password the password to set
-	// */
-	// public void setPassword(String password) {
-	// this.password = password;
-	// }
-	//
-	// /**
-	// * @return the password
-	// */
-	// public String getPassword() {
-	// return password;
-	// }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof User user)) {
+			return false;
+		}
+		return Objects.equals(email, user.email);
+	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(email);
+	}
+
+	@Override
+	public String toString() {
+		return "User{id=%d, email='%s'}".formatted(id, email);
+	}
 }
