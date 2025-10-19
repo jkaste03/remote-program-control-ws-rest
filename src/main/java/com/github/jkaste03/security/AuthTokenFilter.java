@@ -1,95 +1,75 @@
-/**
- * 
- */
 package com.github.jkaste03.security;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.github.jkaste03.exceptions.UserNotFoundException;
 import com.github.jkaste03.model.User;
-import com.github.jkaste03.repository.UserRepository;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-/**
- * @author tdoy
- */
 @Component
 public class AuthTokenFilter extends OncePerRequestFilter {
 
-	@Autowired
-	private UserRepository userRepository;
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthTokenFilter.class);
 
+	private final UserProvisioningService provisioningService;
+
+	public AuthTokenFilter(UserProvisioningService provisioningService) {
+		this.provisioningService = provisioningService;
+	}
+
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-			throws ServletException, IOException {
+	protected void doFilterInternal(HttpServletRequest request,
+			HttpServletResponse response,
+			FilterChain filterChain) throws ServletException, IOException {
 
-		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		Authentication current = SecurityContextHolder.getContext().getAuthentication();
 
-		if (auth instanceof JwtAuthenticationToken oauthJwtToken) {
-			Jwt jwt = oauthJwtToken.getToken();
+		if (current instanceof JwtAuthenticationToken oauthJwtToken) {
 			try {
-				// update security context with the userDetail object
-				UserDetailsImpl userDetails = getUserDetails(jwt, oauthJwtToken);
+				Jwt jwt = oauthJwtToken.getToken();
 
-				// Do not carry the raw JWT as credentials; we already have authorities
-				UsernamePasswordAuthenticationToken userAuthentication = new UsernamePasswordAuthenticationToken(
-						userDetails, null, userDetails.getAuthorities());
-				userAuthentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				String email = jwt.getClaimAsString("email");
+				String first = jwt.getClaimAsString("given_name");
+				String last = jwt.getClaimAsString("family_name");
 
-				SecurityContextHolder.getContext().setAuthentication(userAuthentication);
+				User user = provisioningService.ensureUserExists(email, safe(first), safe(last));
 
+				// Bygg et lettvekts-principal-objekt (immutabelt)
+				UserPrincipal principal = new UserPrincipal(
+						user.getUserid(), user.getFirstname(), user.getLastname(), user.getEmail(),
+						user.getRoles());
+
+				// Bruk eksisterende authorities fra tokenet (Keycloak roller/scopes)
+				UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(principal, null,
+						oauthJwtToken.getAuthorities());
+				auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				SecurityContextHolder.getContext().setAuthentication(auth);
 			} catch (Exception e) {
-				LOGGER.error("Failed to update token authentication with user details: {}", e);
+				// Viktig: logg exception riktig
+				LOGGER.error("Failed to build authenticated principal from JWT", e);
+				// Ikke kast videre (la request gå videre som anonym), med mindre du vil
+				// blokkere
 			}
 		}
 
 		filterChain.doFilter(request, response);
 	}
 
-	private UserDetailsImpl getUserDetails(Jwt jwt, JwtAuthenticationToken oauthJwtToken) throws UserNotFoundException {
-
-		User user = new User();
-
-		String email = jwt.getClaimAsString("email"); // keycloak attribute name (claim)
-		String firstname = jwt.getClaimAsString("given_name"); // keycloak attribute name (claim)
-		String lastname = jwt.getClaimAsString("family_name"); // keycloak attribute name (claim)
-
-		user.setEmail(email);
-		user.setFirstname(firstname);
-		user.setLastname(lastname);
-
-		// create user in the library database if it does not exist
-		Optional<User> libuser = userRepository.findByEmail(email);
-
-		User user1 = libuser.orElse(null);
-
-		if (libuser.isEmpty()) {
-			user1 = userRepository.save(user);
-			System.out.println(user1);
-		} else {
-			user.setUserid(user1.getUserid());
-		}
-
-		return UserDetailsImpl.build(user, oauthJwtToken.getAuthorities());
-
+	private static String safe(String s) {
+		return s == null ? "" : s;
 	}
-
 }
