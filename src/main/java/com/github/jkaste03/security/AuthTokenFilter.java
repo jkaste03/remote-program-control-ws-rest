@@ -49,8 +49,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 				// update security context with the userDetail object
 				UserDetailsImpl userDetails = getUserDetails(jwt, oauthJwtToken);
 
-				UsernamePasswordAuthenticationToken userAuthentication =
-						new UsernamePasswordAuthenticationToken(userDetails, jwt, userDetails.getAuthorities());
+				// Do not carry the raw JWT as credentials; we already have authorities
+				UsernamePasswordAuthenticationToken userAuthentication = new UsernamePasswordAuthenticationToken(
+						userDetails, null, userDetails.getAuthorities());
 				userAuthentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
 				SecurityContextHolder.getContext().setAuthentication(userAuthentication);
