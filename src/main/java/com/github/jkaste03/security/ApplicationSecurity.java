@@ -3,6 +3,7 @@
  */
 package com.github.jkaste03.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -35,7 +36,8 @@ public class ApplicationSecurity {
 
 	@Bean
 	public Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter(
-			UserProvisioningService provisioningService) {
-		return new UserPrincipalJwtAuthenticationConverter(provisioningService);
+			UserProvisioningService provisioningService,
+			@Value("${keycloak.resource:dat152oblig2}") String clientId) {
+		return new UserPrincipalJwtAuthenticationConverter(provisioningService, clientId);
 	}
 }
