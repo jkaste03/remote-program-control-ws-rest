@@ -7,12 +7,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EnableJpaRepositories("no.hvl.dat152.repository")
-@EntityScan("no.hvl.dat152.model")
-@ComponentScan(basePackages = { "no.hvl.dat152.service",
-		"no.hvl.dat152.controller",
-		"no.hvl.dat152.main.config",
-		"no.hvl.dat152.security" })
+@EnableJpaRepositories("com.github.jkaste03.repository")
+@EntityScan("com.github.jkaste03.model")
+@ComponentScan(basePackages = { "com.github.jkaste03.service",
+		"com.github.jkaste03.controller",
+		"com.github.jkaste03.main.config",
+		"com.github.jkaste03.security" })
 public class RemoteProgramControlApplication {
 
 	public static void main(String[] args) {
