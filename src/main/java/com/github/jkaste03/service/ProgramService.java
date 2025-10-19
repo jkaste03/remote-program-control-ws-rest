@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.model.Program;
-import com.github.jkaste03.model.Role;
 import com.github.jkaste03.repository.ProgramRepository;
 
 import java.util.List;
@@ -20,7 +19,7 @@ public class ProgramService {
     }
 
     @Transactional(readOnly = true)
-    public List<Program> getProgramsByRoles(Set<Role> userRoles) {
-        return programRepository.findByAllowedRolesIn(userRoles);
+    public List<Program> getProgramsByRoles(Set<String> userRoles) {
+        return programRepository.findAllByAllowedRoleNames(userRoles);
     }
 }
