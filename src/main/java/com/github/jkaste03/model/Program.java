@@ -67,9 +67,7 @@ public class Program {
     }
 
     public void addAllowedRole(Role role) {
-        if (role != null) {
-            this.allowedRoles.add(role);
-        }
+        this.allowedRoles.add(role);
     }
 
     public void removeAllowedRole(Role role) {
