@@ -113,9 +113,7 @@ public class User {
 
 	public void setDevices(Set<Device> devices) {
 		this.devices.clear();
-		if (devices != null) {
-			devices.forEach(this::addDevice);
-		}
+		devices.forEach(this::addDevice);
 	}
 
 	public void addDevice(Device device) {
