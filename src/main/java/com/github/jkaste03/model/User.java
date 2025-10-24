@@ -1,10 +1,6 @@
 package com.github.jkaste03.model;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -12,9 +8,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "users")
@@ -38,9 +34,10 @@ public class User {
 	// @JsonIgnore
 	// private String password;
 
-	@ManyToMany(fetch = FetchType.LAZY)
-	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-	private final Set<Role> roles = new HashSet<>();
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "role_id", nullable = false)
+	@NotNull
+	private Role role;
 
 	protected User() {
 		/* for JPA */ }
@@ -79,25 +76,12 @@ public class User {
 		this.email = email;
 	}
 
-	public Set<Role> getRoles() {
-		return Collections.unmodifiableSet(roles);
+	public Role getRole() {
+		return role;
 	}
 
-	public void setRoles(Set<Role> roles) {
-		this.roles.clear();
-		if (roles != null) {
-			roles.forEach(this::addRole);
-		}
-	}
-
-	public void addRole(Role role) {
-		if (role != null) {
-			this.roles.add(role);
-		}
-	}
-
-	public void removeRole(Role role) {
-		this.roles.remove(role);
+	public void setRole(Role role) {
+		this.role = role;
 	}
 
 	@Override
