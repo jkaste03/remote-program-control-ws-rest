@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
@@ -35,7 +36,7 @@ public class User {
 	// private String password;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "role_id", nullable = false)
+	@JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))
 	@NotNull
 	private Role role;
 
