@@ -5,9 +5,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -41,13 +37,10 @@ public class User {
 	// @Column(nullable = false, length = 64)
 	// @JsonIgnore
 	// private String password;
+
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
 	private final Set<Role> roles = new HashSet<>();
-
-	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-	@JsonManagedReference(value = "user-devices")
-	private final Set<Device> devices = new HashSet<>();
 
 	protected User() {
 		/* for JPA */ }
@@ -105,32 +98,6 @@ public class User {
 
 	public void removeRole(Role role) {
 		this.roles.remove(role);
-	}
-
-	public Set<Device> getDevices() {
-		return Collections.unmodifiableSet(devices);
-	}
-
-	public void setDevices(Set<Device> devices) {
-		this.devices.clear();
-		devices.forEach(this::addDevice);
-	}
-
-	public void addDevice(Device device) {
-		if (device == null || devices.contains(device)) {
-			return;
-		}
-		devices.add(device);
-		device.setUser(this);
-	}
-
-	public void removeDevice(Device device) {
-		if (device == null) {
-			return;
-		}
-		if (devices.remove(device)) {
-			device.setUser(null);
-		}
 	}
 
 	@Override

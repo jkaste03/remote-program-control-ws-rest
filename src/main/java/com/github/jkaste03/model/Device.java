@@ -90,25 +90,7 @@ public class Device {
 	}
 
 	public void setUser(User user) {
-		if (this.user == user) {
-			return;
-		}
-
-		// Detach from previous user
-		User previous = this.user;
-		if (previous != null) {
-			// Break the link first to avoid recursive loops in User.removeDevice -> setUser(null)
-			this.user = null;
-			if (previous.getDevices().contains(this)) {
-				previous.removeDevice(this);
-			}
-		}
-
-		// Attach to new user
 		this.user = user;
-		if (user != null && !user.getDevices().contains(this)) {
-			user.addDevice(this);
-		}
 	}
 
 	public Status getStatus() {
