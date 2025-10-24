@@ -12,15 +12,19 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "devices")
+@Table(name = "device", indexes = {
+		@Index(name = "idx_device_user_id", columnList = "user_id") // raskere søk per bruker
+})
 public class Device {
 
 	public enum Status {
@@ -36,7 +40,7 @@ public class Device {
 	private String name;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false)
+	@JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_device_user"))
 	@JsonBackReference(value = "user-devices")
 	private User user;
 
