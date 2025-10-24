@@ -20,9 +20,10 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "device", indexes = {
+@Table(name = "devices", indexes = {
 		@Index(name = "idx_device_user_id", columnList = "user_id") // raskere søk per bruker
 })
 public class Device {
@@ -41,7 +42,7 @@ public class Device {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_device_user"))
-	@JsonBackReference(value = "user-devices")
+	@NotNull
 	private User user;
 
 	@Enumerated(EnumType.STRING)
