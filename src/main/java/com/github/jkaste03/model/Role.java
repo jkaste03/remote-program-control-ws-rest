@@ -27,31 +27,6 @@ public class Role {
 		this.name = name;
 	}
 
-	private boolean hasSameName(Role other) {
-		return other != null && Objects.equals(name, other.name);
-	}
-
-	@Override
-	public String toString() {
-		return this.name;
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) {
-			return true;
-		}
-		if (!(o instanceof Role role)) {
-			return false;
-		}
-		return hasSameName(role);
-	}
-
-	@Override
-	public int hashCode() {
-		return Objects.hash(name);
-	}
-
 	/**
 	 * @return the id
 	 */
@@ -80,4 +55,28 @@ public class Role {
 		this.name = name;
 	}
 
+	private boolean hasSameName(Role other) {
+		return other != null && Objects.equals(name, other.name);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof Role role)) {
+			return false;
+		}
+		return hasSameName(role);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(name);
+	}
+
+	@Override
+	public String toString() {
+		return this.name;
+	}
 }
