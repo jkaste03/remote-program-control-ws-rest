@@ -1,5 +1,7 @@
 package com.github.jkaste03.model;
 
+import java.util.Objects;
+
 import org.hibernate.Hibernate;
 
 import jakarta.persistence.Entity;
@@ -31,11 +33,6 @@ public class UserRole {
     @NotNull
     private Role role;
 
-    public UserRole(User user, Role role) {
-        this.user = user;
-        this.role = role;
-    }
-
     public Long getId() {
         return id;
     }
@@ -54,6 +51,14 @@ public class UserRole {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public static UserRole link(User user, Role role) {
+        Objects.requireNonNull(role, "Role must not be null");
+        UserRole userRole = new UserRole();
+        userRole.setUser(user);
+        userRole.setRole(role);
+        return userRole;
     }
 
     @Override

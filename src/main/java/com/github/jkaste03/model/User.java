@@ -86,7 +86,7 @@ public class User {
 		boolean exists = roles.stream().anyMatch(ur -> ur.getRole().equals(role));
 		if (exists)
 			return false;
-		roles.add(new UserRole(this, role));
+		roles.add(UserRole.link(this, role));
 		return true;
 	}
 
