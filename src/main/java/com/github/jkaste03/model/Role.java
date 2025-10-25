@@ -15,8 +15,8 @@ import jakarta.persistence.Table;
 public class Role {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "device_seq")
-	@SequenceGenerator(name = "device_seq", sequenceName = "device_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "role_seq")
+	@SequenceGenerator(name = "role_seq", sequenceName = "role_seq", allocationSize = 50)
 	private Long id;
 
 	@Column(nullable = false, length = 30, unique = true)

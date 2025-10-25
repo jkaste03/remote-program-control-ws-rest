@@ -23,8 +23,8 @@ import jakarta.persistence.Transient;
 public class User {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "device_seq")
-	@SequenceGenerator(name = "device_seq", sequenceName = "device_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "role_seq")
+	@SequenceGenerator(name = "role_seq", sequenceName = "role_seq", allocationSize = 50)
 	private Long id;
 
 	@Column(name = "firstname", nullable = false, length = 50)

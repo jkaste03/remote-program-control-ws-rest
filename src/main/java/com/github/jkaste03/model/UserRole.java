@@ -15,8 +15,8 @@ import jakarta.validation.constraints.NotNull;
 @Table(name = "user_roles", uniqueConstraints = @UniqueConstraint(columnNames = { "user_id", "role_id" }))
 public class UserRole {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "device_seq")
-    @SequenceGenerator(name = "device_seq", sequenceName = "device_seq", allocationSize = 50)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_role_seq")
+    @SequenceGenerator(name = "user_role_seq", sequenceName = "user_role_seq", allocationSize = 50)
     private Long id;
 
     @ManyToOne(optional = false)
