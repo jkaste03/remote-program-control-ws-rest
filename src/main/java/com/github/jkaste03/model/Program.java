@@ -1,22 +1,19 @@
 package com.github.jkaste03.model;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.hibernate.Hibernate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "programs")
@@ -30,20 +27,17 @@ public class Program {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "program_roles", joinColumns = @JoinColumn(name = "program_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private final Set<Role> allowedRoles = new HashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "allowed_role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_program_allowed_role"))
+    @NotNull
+    private Role allowedRole;
 
     protected Program() {
         /* for JPA */ }
 
-    public Program(String name) {
+    public Program(String name, Role allowedRole) {
         this.name = name;
-    }
-
-    public Program(String name, Set<Role> allowedRoles) {
-        this(name);
-        setAllowedRoles(allowedRoles);
+        this.allowedRole = allowedRole;
     }
 
     public Long getId() {
@@ -58,23 +52,12 @@ public class Program {
         this.name = name;
     }
 
-    public Set<Role> getAllowedRoles() {
-        return Collections.unmodifiableSet(allowedRoles);
+    public Role getAllowedRole() {
+        return allowedRole;
     }
 
-    public void setAllowedRoles(Set<Role> allowedRoles) {
-        this.allowedRoles.clear();
-        if (allowedRoles != null) {
-            allowedRoles.forEach(this::addAllowedRole);
-        }
-    }
-
-    public void addAllowedRole(Role role) {
-        this.allowedRoles.add(role);
-    }
-
-    public void removeAllowedRole(Role role) {
-        this.allowedRoles.remove(role);
+    public void setAllowedRole(Role allowedRole) {
+        this.allowedRole = allowedRole;
     }
 
     @Override
@@ -100,6 +83,6 @@ public class Program {
 
     @Override
     public String toString() {
-        return "Program{name='%s', allowedRoles=%d}".formatted(name, allowedRoles.size());
+        return "Program [id=" + id + ", name=" + name + ", allowedRole=" + allowedRole + "]";
     }
 }
