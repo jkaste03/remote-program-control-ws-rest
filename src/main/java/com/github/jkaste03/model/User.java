@@ -1,6 +1,12 @@
 package com.github.jkaste03.model;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+
+import org.hibernate.annotations.NaturalId;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,7 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "users")
@@ -27,17 +33,16 @@ public class User {
 	@Column(name = "lastname", nullable = false, length = 50)
 	private String lastName;
 
-	@Column(nullable = false, length = 50, unique = true)
+	@NaturalId
+	@Column(nullable = false, length = 120, unique = true)
 	private String email;
 
 	// @Column(nullable = false, length = 64)
 	// @JsonIgnore
 	// private String password;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))
-	@NotNull
-	private Role role;
+	@OneToMany(mappedBy = "user", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
+	private Set<UserRole> roles = new HashSet<>();
 
 	protected User() {
 		/* for JPA */ }
@@ -76,12 +81,28 @@ public class User {
 		this.email = email;
 	}
 
-	public Role getRole() {
-		return role;
+	// --- Helper-metoder (hold begge sider i sync) ---
+	public boolean addRole(Role role) {
+		boolean exists = roles.stream().anyMatch(ur -> ur.getRole().equals(role));
+		if (exists)
+			return false;
+		roles.add(new UserRole(this, role));
+		return true;
 	}
 
-	public void setRole(Role role) {
-		this.role = role;
+	public boolean removeRole(Role role) {
+		return roles.removeIf(ur -> ur.getRole().equals(role));
+	}
+
+	// Ikke gi ut den muterbare samlingen direkte:
+	public Set<UserRole> getUserRoles() {
+		return Set.copyOf(roles);
+	}
+
+	// Praktisk “view” for lesing/DTO:
+	@Transient
+	public Set<String> getRoleNames() {
+		return roles.stream().map(ur -> ur.getRole().getName()).collect(java.util.stream.Collectors.toSet());
 	}
 
 	@Override
