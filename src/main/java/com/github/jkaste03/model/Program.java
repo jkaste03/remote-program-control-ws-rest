@@ -2,8 +2,9 @@ package com.github.jkaste03.model;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
+
+import org.hibernate.Hibernate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -78,18 +79,23 @@ public class Program {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
+        if (this == o)
             return true;
-        }
-        if (!(o instanceof Program program)) {
+        if (o == null)
+            return false;
+        if (!Hibernate.getClass(this).equals(Hibernate.getClass(o))) {
             return false;
         }
-        return Objects.equals(name, program.name);
+        Program other = (Program) o;
+        if (this.id == null || other.id == null) {
+            return false;
+        }
+        return this.id.equals(other.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name);
+        return (id != null) ? id.hashCode() : 31;
     }
 
     @Override

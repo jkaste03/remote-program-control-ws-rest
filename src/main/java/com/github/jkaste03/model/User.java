@@ -1,9 +1,9 @@
 package com.github.jkaste03.model;
 
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
+import org.hibernate.Hibernate;
 import org.hibernate.annotations.NaturalId;
 
 import jakarta.persistence.CascadeType;
@@ -33,7 +33,7 @@ public class User {
 	@Column(name = "lastname", nullable = false, length = 50)
 	private String lastName;
 
-	@NaturalId
+	@NaturalId(mutable = true)
 	@Column(nullable = false, length = 120, unique = true)
 	private String email;
 
@@ -107,18 +107,23 @@ public class User {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) {
+		if (this == o)
 			return true;
-		}
-		if (!(o instanceof User user)) {
+		if (o == null)
+			return false;
+		if (!Hibernate.getClass(this).equals(Hibernate.getClass(o))) {
 			return false;
 		}
-		return Objects.equals(email, user.email);
+		User other = (User) o;
+		if (this.id == null || other.id == null) {
+			return false;
+		}
+		return this.id.equals(other.id);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(email);
+		return (id != null) ? id.hashCode() : 31;
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package com.github.jkaste03.model;
 
+import org.hibernate.Hibernate;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -52,6 +54,25 @@ public class UserRole {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null)
+            return false;
+        if (!Hibernate.getClass(this).equals(Hibernate.getClass(o)))
+            return false;
+        UserRole other = (UserRole) o;
+        if (this.id == null || other.id == null)
+            return false;
+        return this.id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return (id != null) ? id.hashCode() : 31;
     }
 
     @Override

@@ -1,8 +1,8 @@
 package com.github.jkaste03.model;
 
 import java.time.Instant;
-import java.util.Objects;
 
+import org.hibernate.Hibernate;
 import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
@@ -140,17 +140,22 @@ public class Device {
 
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) {
+		if (this == o)
 			return true;
-		}
-		if (!(o instanceof Device device)) {
+		if (o == null)
+			return false;
+		if (!Hibernate.getClass(this).equals(Hibernate.getClass(o))) {
 			return false;
 		}
-		return id != null && Objects.equals(id, device.id);
+		Device other = (Device) o;
+		if (this.id == null || other.id == null) {
+			return false;
+		}
+		return this.id.equals(other.id);
 	}
 
 	@Override
 	public int hashCode() {
-		return id == null ? 0 : id.hashCode();
+		return (id != null) ? id.hashCode() : 31;
 	}
 }
