@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
 @Entity
@@ -14,8 +15,9 @@ import jakarta.persistence.Table;
 public class Role {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Integer id;
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "device_seq")
+	@SequenceGenerator(name = "device_seq", sequenceName = "device_seq", allocationSize = 50)
+	private Long id;
 
 	@Column(nullable = false, length = 30, unique = true)
 	private String name;
@@ -30,14 +32,14 @@ public class Role {
 	/**
 	 * @return the id
 	 */
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 
 	/**
 	 * @param id the id to set
 	 */
-	public void setId(Integer id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
 
@@ -77,6 +79,6 @@ public class Role {
 
 	@Override
 	public String toString() {
-		return this.name;
+		return "Role [id=" + id + ", name=" + name + "]";
 	}
 }

@@ -7,9 +7,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.ForeignKey;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
@@ -18,8 +17,8 @@ import jakarta.validation.constraints.NotNull;
 public class User {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "userid")
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "device_seq")
+	@SequenceGenerator(name = "device_seq", sequenceName = "device_seq", allocationSize = 50)
 	private Long id;
 
 	@Column(name = "firstname", nullable = false, length = 50)
