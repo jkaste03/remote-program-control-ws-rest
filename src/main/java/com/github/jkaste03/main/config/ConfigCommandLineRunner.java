@@ -8,7 +8,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -157,24 +156,6 @@ class ConfigCommandLineRunner implements CommandLineRunner {
         }
 
         log.info("User seeding complete: {} created, {} updated", created, updated);
-    }
-
-    private boolean updateUser(User user, UserSeed seed, Set<Role> rolesToAssign) {
-        boolean changed = false;
-        if (!Objects.equals(user.getFirstName(), seed.firstName())) {
-            user.setFirstName(seed.firstName());
-            changed = true;
-        }
-        if (!Objects.equals(user.getLastName(), seed.lastName())) {
-            user.setLastName(seed.lastName());
-            changed = true;
-        }
-        for (Role role : rolesToAssign) {
-            if (user.addRole(role)) {
-                changed = true;
-            }
-        }
-        return changed;
     }
 
     private void persistDevices(User owner, List<DeviceSeed> deviceSeeds) {
