@@ -32,6 +32,11 @@ public class Program {
     @NotNull
     private Role allowedRole;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "device_id", nullable = false, foreignKey = @ForeignKey(name = "fk_program_device"))
+    @NotNull
+    private Device device;
+
     protected Program() {
         /* for JPA */ }
 
@@ -58,6 +63,27 @@ public class Program {
 
     public void setAllowedRole(Role allowedRole) {
         this.allowedRole = allowedRole;
+    }
+
+    public Device getDevice() {
+        return device;
+    }
+
+    public void setDevice(Device newDevice) {
+        if (this.device == newDevice) {
+            return; // ingenting å gjøre
+        }
+
+        if (this.device != null) {
+            this.device.getPrograms().remove(this);
+        }
+
+        this.device = newDevice;
+
+        // Legg til på ny device (unngå duplikater)
+        if (newDevice != null && !newDevice.getPrograms().contains(this)) {
+            newDevice.getPrograms().add(this);
+        }
     }
 
     @Override
