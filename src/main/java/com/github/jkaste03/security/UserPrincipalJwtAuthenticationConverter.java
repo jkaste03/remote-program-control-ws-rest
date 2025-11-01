@@ -1,4 +1,3 @@
-// com/github/jkaste03/security/UserPrincipalJwtAuthenticationConverter.java
 package com.github.jkaste03.security;
 
 import java.util.Collection;
@@ -17,6 +16,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
@@ -30,7 +30,7 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
     }
 
     @Override
-    public AbstractAuthenticationToken convert(Jwt jwt) {
+    public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         // Provisionér/oppdater bruker
         String email = jwt.getClaimAsString("email");
         String first = orEmpty(jwt.getClaimAsString("given_name"));
@@ -55,7 +55,6 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         return v == null ? "" : v;
     }
 
-    @SuppressWarnings("unchecked")
     private static Set<String> extractRoleNames(Jwt jwt, String clientId) {
         var roles = new LinkedHashSet<String>();
 
