@@ -1,19 +1,10 @@
 package com.github.jkaste03.main.config;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,193 +14,96 @@ import com.github.jkaste03.model.Program;
 import com.github.jkaste03.model.Role;
 import com.github.jkaste03.model.User;
 import com.github.jkaste03.repository.DeviceRepository;
-import com.github.jkaste03.repository.ProgramRepository;
 import com.github.jkaste03.repository.RoleRepository;
 import com.github.jkaste03.repository.UserRepository;
 
 @Component
-class ConfigCommandLineRunner implements CommandLineRunner {
+public class ConfigCommandLineRunner implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigCommandLineRunner.class);
 
-    private static final List<ProgramSeed> PROGRAM_SEEDS = List.of(
-            new ProgramSeed("System Monitor", "ADMIN"),
-            new ProgramSeed("Remote Desktop", "USER"),
-            new ProgramSeed("Media Center", "USER"),
-            new ProgramSeed("Smart Lighting Controller", "USER"));
+    private final RoleRepository roleRepo;
+    private final UserRepository userRepo;
+    private final DeviceRepository deviceRepo;
 
-    private static final List<UserSeed> USER_SEEDS = List.of(
-            new UserSeed("user1@email.com", "User1_Firstname", "User1_Lastname", Set.of("USER"),
-                    List.of(
-                            new DeviceSeed("Living Room Media Center", Device.Status.ONLINE, Duration.ofHours(1),
-                                    "AA:BB:CC:DD:EE:01", "192.168.0.10"),
-                            new DeviceSeed("Bedroom Smart Speaker", Device.Status.OFFLINE, Duration.ofHours(6),
-                                    "AA:BB:CC:DD:EE:02", "192.168.0.11"))),
-            new UserSeed("user2@email.com", "User2_Firstname", "User2_Lastname", Set.of("ADMIN", "USER"),
-                    List.of(new DeviceSeed("Office Workstation", Device.Status.ONLINE, Duration.ofMinutes(15),
-                            "AA:BB:CC:DD:EE:10", "10.0.0.25"))),
-            new UserSeed("user3@email.com", "User3_Firstname", "User3_Lastname", Set.of("USER"),
-                    List.of(new DeviceSeed("Garage Controller", Device.Status.OFFLINE, Duration.ofDays(2),
-                            "AA:BB:CC:DD:EE:20", "172.16.0.18"))));
-
-    private final RoleRepository roleRepository;
-    private final UserRepository userRepository;
-    private final ProgramRepository programRepository;
-    private final DeviceRepository deviceRepository;
-    private final List<String> configuredRoleNames;
-    private final boolean seedingEnabled;
-
-    ConfigCommandLineRunner(RoleRepository roleRepository,
-            UserRepository userRepository,
-            ProgramRepository programRepository,
-            DeviceRepository deviceRepository,
-            @Value("#{'${user.resource.roles}'.split(',')}") List<String> configuredRoleNames,
-            @Value("${app.seed.enabled:true}") boolean seedingEnabled) {
-        this.roleRepository = roleRepository;
-        this.userRepository = userRepository;
-        this.programRepository = programRepository;
-        this.deviceRepository = deviceRepository;
-        this.configuredRoleNames = configuredRoleNames == null ? List.of()
-                : configuredRoleNames.stream()
-                        .map(name -> name == null ? "" : name.trim())
-                        .filter(name -> !name.isBlank())
-                        .distinct()
-                        .collect(Collectors.toUnmodifiableList());
-        this.seedingEnabled = seedingEnabled;
+    public ConfigCommandLineRunner(
+            RoleRepository roleRepo,
+            UserRepository userRepo,
+            DeviceRepository deviceRepo) {
+        this.roleRepo = roleRepo;
+        this.userRepo = userRepo;
+        this.deviceRepo = deviceRepo;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedingEnabled) {
-            log.info("Skipping bootstrap seeding because app.seed.enabled is false");
+        // Skipp hvis noe allerede finnes (trygt selv om du antar tom DB)
+        if (roleRepo.count() > 0 || userRepo.count() > 0 || deviceRepo.count() > 0) {
+            log.info("Seeder hoppet over: det finnes allerede data.");
             return;
         }
 
-        Map<String, Role> rolesByName = ensureRoles();
-        if (rolesByName.isEmpty()) {
-            log.warn("No roles configured for seeding; skipping default data bootstrap");
-            return;
-        }
+        log.info("Starter seeding av grunndata ...");
 
-        seedPrograms(rolesByName);
-        seedUsers(rolesByName);
+        // 1) Roller (data-drevet Roller beholdes)
+        Role roleUser = createRole("USER");
+        Role roleAdmin = createRole("ADMIN");
+
+        // 2) Brukere (MANGE roller via UserRole-link)
+        User admin = new User("admin@local", "Admin", "User");
+        admin.addRole(roleAdmin);
+        admin.addRole(roleUser); // admin har også USER
+
+        User regular = new User("user@local", "Regular", "User");
+        regular.addRole(roleUser);
+
+        userRepo.saveAll(List.of(admin, regular));
+        // Merk: CascadeType.PERSIST på User.roles gjør at UserRole-lenkene persisteres
+        // samtidig
+
+        // 3) Enheter
+        Device userPc = new Device(
+                "User-PC",
+                regular,
+                Device.Status.OFFLINE,
+                null,
+                "00:11:22:33:44:55",
+                null);
+
+        Device adminServer = new Device(
+                "Admin-Server",
+                admin,
+                Device.Status.ONLINE,
+                Instant.now(),
+                "00:11:22:33:44:66",
+                "198.51.100.10");
+
+        // 4) Programmer
+        // - Calculator: public (alle kan; ingen unntak nødvendig)
+        Program calc = new Program("Calculator", true);
+
+        // - AdminTool: privat (ingen kan, UNNTATT admin)
+        Program adminTool = new Program("AdminTool", false);
+        adminTool.allow(admin);
+
+        // (valgfritt) Et ekstra public program på admin-serveren
+        Program logViewer = new Program("LogViewer", true);
+
+        // Koble programmer til enheter (holder begge sider i sync)
+        userPc.addProgram(calc);
+        adminServer.addProgram(adminTool);
+        adminServer.addProgram(logViewer);
+
+        // 5) Lagre (Device -> Program cascade = ALL, så programmer persisteres
+        // automatisk)
+        deviceRepo.saveAll(List.of(userPc, adminServer));
+
+        log.info("Seeding ferdig. Roller: {}, Brukere: {}, Enheter: {}",
+                roleRepo.count(), userRepo.count(), deviceRepo.count());
     }
 
-    private Map<String, Role> ensureRoles() {
-        Map<String, Role> rolesByName = new HashMap<>();
-        for (String configuredName : configuredRoleNames) {
-            String normalized = normalize(configuredName);
-            if (normalized.isEmpty()) {
-                continue;
-            }
-            Role role = roleRepository.findByName(configuredName);
-            if (role == null) {
-                role = roleRepository.save(new Role(configuredName));
-                log.info("Created missing role '{}'", configuredName);
-            }
-            rolesByName.put(normalized, role);
-        }
-        if (configuredRoleNames.isEmpty()) {
-            log.warn("No values declared in user.resource.roles - no roles will be seeded");
-        }
-        return rolesByName;
-    }
-
-    private void seedPrograms(Map<String, Role> rolesByName) {
-        int created = 0;
-        int updated = 0;
-
-        for (ProgramSeed seed : PROGRAM_SEEDS) {
-            Role allowedRole = resolveRole(seed.roleName(), rolesByName);
-            if (allowedRole == null) {
-                log.warn("Skipping program '{}' because role '{}' is not configured", seed.name(), seed.roleName());
-                continue;
-            }
-
-            Program program = new Program(seed.name(), allowedRole);
-            programRepository.save(program);
-            created++;
-            log.info("Created default program '{}'", seed.name());
-        }
-
-        log.info("Program seeding complete: {} created, {} updated", created, updated);
-    }
-
-    private void seedUsers(Map<String, Role> rolesByName) {
-        int created = 0;
-        int updated = 0;
-
-        for (UserSeed seed : USER_SEEDS) {
-            Set<Role> rolesToAssign = resolveRoles(seed.roleNames(), rolesByName);
-            if (rolesToAssign.isEmpty()) {
-                log.warn("Skipping user '{}' because none of its roles are configured", seed.email());
-                continue;
-            }
-
-            User user = new User(seed.email(), seed.firstName(), seed.lastName());
-            rolesToAssign.forEach(user::addRole);
-            User persisted = userRepository.save(user);
-            created++;
-            log.info("Created default user '{}'", seed.email());
-            persistDevices(persisted, seed.devices());
-        }
-
-        log.info("User seeding complete: {} created, {} updated", created, updated);
-    }
-
-    private void persistDevices(User owner, List<DeviceSeed> deviceSeeds) {
-        if (deviceSeeds.isEmpty()) {
-            return;
-        }
-        List<Device> devices = new ArrayList<>(deviceSeeds.size());
-        for (DeviceSeed seed : deviceSeeds) {
-            devices.add(seed.toEntity(owner));
-        }
-        deviceRepository.saveAll(devices);
-        log.info("Created {} device(s) for user '{}'", devices.size(), owner.getEmail());
-    }
-
-    private Set<Role> resolveRoles(Set<String> roleNames, Map<String, Role> rolesByName) {
-        Set<Role> resolved = new LinkedHashSet<>();
-        for (String roleName : roleNames) {
-            Role role = rolesByName.get(normalize(roleName));
-            if (role != null) {
-                resolved.add(role);
-            } else {
-                log.warn("Role '{}' referenced in seed data but not present in user.resource.roles", roleName);
-            }
-        }
-        return resolved;
-    }
-
-    private static String normalize(String value) {
-        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
-    }
-
-    private Role resolveRole(String roleName, Map<String, Role> rolesByName) {
-        if (roleName == null) {
-            return null;
-        }
-        Role role = rolesByName.get(normalize(roleName));
-        if (role == null) {
-            log.warn("Role '{}' referenced in seed data but not present in user.resource.roles", roleName);
-        }
-        return role;
-    }
-
-    private record ProgramSeed(String name, String roleName) {
-    }
-
-    private record UserSeed(String email, String firstName, String lastName, Set<String> roleNames,
-            List<DeviceSeed> devices) {
-    }
-
-    private record DeviceSeed(String name, Device.Status status, Duration lastSeenAgo, String macAddress,
-            String publicIp) {
-        Device toEntity(User owner) {
-            Instant lastSeen = lastSeenAgo == null ? null : Instant.now().minus(lastSeenAgo);
-            return new Device(name, owner, status, lastSeen, macAddress, publicIp);
-        }
+    private Role createRole(String name) {
+        return roleRepo.save(new Role(name));
     }
 }

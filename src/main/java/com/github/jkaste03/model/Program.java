@@ -1,5 +1,8 @@
 package com.github.jkaste03.model;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import org.hibernate.Hibernate;
 
 import jakarta.persistence.Column;
@@ -9,7 +12,10 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
@@ -27,10 +33,15 @@ public class Program {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "allowed_role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_program_allowed_role"))
-    @NotNull
-    private Role allowedRole;
+    @Column(name = "is_public", nullable = false)
+    private boolean isPublic = false;
+
+    @ManyToMany
+    @JoinTable(name = "program_allowed_users", joinColumns = @JoinColumn(name = "program_id", foreignKey = @ForeignKey(name = "fk_prog_allowed_prog")), inverseJoinColumns = @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_prog_allowed_user")), indexes = {
+            @Index(name = "idx_prog_allowed_program_id", columnList = "program_id"),
+            @Index(name = "idx_prog_allowed_user_id", columnList = "user_id")
+    })
+    private Set<User> allowedUsers = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "device_id", nullable = false, foreignKey = @ForeignKey(name = "fk_program_device"))
@@ -40,9 +51,9 @@ public class Program {
     protected Program() {
         /* for JPA */ }
 
-    public Program(String name, Role allowedRole) {
+    public Program(String name, boolean isPublic) {
         this.name = name;
-        this.allowedRole = allowedRole;
+        this.isPublic = isPublic;
     }
 
     public Long getId() {
@@ -57,12 +68,12 @@ public class Program {
         this.name = name;
     }
 
-    public Role getAllowedRole() {
-        return allowedRole;
+    public boolean isPublic() {
+        return isPublic;
     }
 
-    public void setAllowedRole(Role allowedRole) {
-        this.allowedRole = allowedRole;
+    public void setPublic(boolean isPublic) {
+        this.isPublic = isPublic;
     }
 
     public Device getDevice() {
@@ -84,6 +95,22 @@ public class Program {
         if (newDevice != null && !newDevice.getPrograms().contains(this)) {
             newDevice.getPrograms().add(this);
         }
+    }
+
+    public Set<User> getAllowedUsers() {
+        return allowedUsers;
+    }
+
+    public void allow(User u) {
+        allowedUsers.add(u);
+    }
+
+    public void disallow(User u) {
+        allowedUsers.remove(u);
+    }
+
+    public void clearAllowedUsers() {
+        allowedUsers.clear();
     }
 
     @Override
@@ -109,6 +136,6 @@ public class Program {
 
     @Override
     public String toString() {
-        return "Program [id=" + id + ", name=" + name + ", allowedRole=" + allowedRole + "]";
+        return "Program [id=" + id + ", name=" + name + ", isPublic=" + isPublic + "]";
     }
 }

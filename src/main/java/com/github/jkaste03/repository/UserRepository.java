@@ -12,9 +12,5 @@ import com.github.jkaste03.model.User;
  * 
  */
 public interface UserRepository extends CrudRepository<User, Long> {
-
 	Optional<User> findByEmail(String email);
-
-	Boolean existsByEmail(String email);
-
 }

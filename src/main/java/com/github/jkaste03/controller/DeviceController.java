@@ -12,6 +12,9 @@ import com.github.jkaste03.dto.DeviceDto;
 import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.service.DeviceService;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.github.jkaste03.security.UserPrincipal;
+
 @RestController
 @RequestMapping("/remote-program-control/api/v1/devices")
 public class DeviceController {
@@ -23,9 +26,13 @@ public class DeviceController {
     }
 
     @GetMapping
-    public List<DeviceDto> getDevicesForCurrentUser(Authentication authentication) {
+    public List<DeviceDto> getDevicesForCurrentUser(Authentication authentication,
+            @AuthenticationPrincipal UserPrincipal principal) {
 
         Set<String> userRoleNames = SecurityUtils.extractRoleNames(authentication);
-        return deviceService.listDevicesForRoles(userRoleNames);
+        boolean isAdmin = userRoleNames.contains("ADMIN");
+
+        Long userId = principal.id();
+        return deviceService.getDevicesForUser(userId, isAdmin);
     }
 }

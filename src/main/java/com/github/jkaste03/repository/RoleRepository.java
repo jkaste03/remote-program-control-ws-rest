@@ -10,8 +10,6 @@ import com.github.jkaste03.model.Role;
 /**
  * 
  */
-public interface RoleRepository extends CrudRepository<Role, Integer> {
-
-	Role findByName(String name);
+public interface RoleRepository extends CrudRepository<Role, Long> {
 
 }
