@@ -1,4 +1,3 @@
-// com.github.jkaste03.security.UserProvisioningService
 package com.github.jkaste03.security;
 
 import java.util.Objects;
