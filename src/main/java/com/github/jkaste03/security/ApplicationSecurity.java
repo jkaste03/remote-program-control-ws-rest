@@ -45,7 +45,7 @@ public class ApplicationSecurity {
 	@Order(2)
 	public SecurityFilterChain appSecurityFilterChain(
 			HttpSecurity http,
-			Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter) throws Exception {
+			Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter) throws Exception {
 
 		http
 				// Ekskluder H2 fra hovedkjeden (ikke strengt nødvendig, men ryddig)
@@ -63,7 +63,7 @@ public class ApplicationSecurity {
 	}
 
 	@Bean
-	public Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter(
+	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter(
 			UserProvisioningService provisioningService,
 			@Value("${keycloak.resource:dat152oblig2}") String clientId) {
 		return new UserPrincipalJwtAuthenticationConverter(provisioningService, clientId);
