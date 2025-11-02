@@ -27,7 +27,7 @@ import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "devices", indexes = {
-		@Index(name = "idx_device_user_id", columnList = "user_id") // raskere søk per bruker
+		@Index(name = "idx_device_owner_id", columnList = "owner_id") // raskere søk per bruker
 })
 public class Device {
 
@@ -45,9 +45,9 @@ public class Device {
 	private String name;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_device_user"))
+	@JoinColumn(name = "owner_id", nullable = false, foreignKey = @ForeignKey(name = "fk_device_owner"))
 	@NotNull
-	private User user;
+	private User owner;
 
 	@OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<Program> programs = new LinkedHashSet<>();
@@ -72,13 +72,9 @@ public class Device {
 	protected Device() {
 		/* for JPA */ }
 
-	public Device(String name, User user) {
+	public Device(String name, User owner, Status status, Instant lastSeen, String macAddress, String publicIp) {
 		this.name = name;
-		this.user = user;
-	}
-
-	public Device(String name, User user, Status status, Instant lastSeen, String macAddress, String publicIp) {
-		this(name, user);
+		this.owner = owner;
 		this.status = status;
 		this.lastSeen = lastSeen;
 		this.macAddress = macAddress;
@@ -97,12 +93,12 @@ public class Device {
 		this.name = name;
 	}
 
-	public User getUser() {
-		return user;
+	public User getOwner() {
+		return owner;
 	}
 
-	public void setUser(User user) {
-		this.user = user;
+	public void setOwner(User owner) {
+		this.owner = owner;
 	}
 
 	public Status getStatus() {

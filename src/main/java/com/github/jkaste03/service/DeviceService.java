@@ -39,7 +39,7 @@ public class DeviceService {
 
         List<DeviceDto> result = new ArrayList<>(devices.size());
         for (Device d : devices) {
-            boolean isOwner = d.getUser().getId().equals(userId);
+            boolean isOwner = d.getOwner().getId().equals(userId);
 
             List<ProgramDto> programDtos = d.getPrograms()
                     .stream()
@@ -47,7 +47,7 @@ public class DeviceService {
                     .map(p -> new ProgramDto(p.getId(), p.getName(), p.isPublic()))
                     .toList();
 
-            result.add(new DeviceDto(d.getId(), d.getName(), d.getUser().getUsername(), programDtos));
+            result.add(new DeviceDto(d.getId(), d.getName(), d.getOwner().getUsername(), programDtos));
         }
         return result;
     }
