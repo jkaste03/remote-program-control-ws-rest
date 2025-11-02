@@ -20,6 +20,8 @@ import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
+    private static final List<String> ROLE_PRIORITY = List.of("ADMIN", "USER");
+
     private final JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
     private final UserProvisioningService provisioningService;
     private final String clientId;
@@ -42,7 +44,7 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         // Authorities: base (scopes) + Keycloak-roller
         Set<String> roleNames = extractRoleNames(jwt, clientId);
 
-        String primaryRole = roleNames.contains("ADMIN") ? "ADMIN" : "USER";
+        String primaryRole = pickPrimaryRole(roleNames);
 
         var user = provisioningService.ensureUserFromJwt(iss, sub, username, email, first, last, primaryRole);
 
@@ -50,12 +52,20 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         var base = delegate.convert(jwt);
 
         authorities.addAll(base);
-        roleNames.forEach(r -> authorities.add(new SimpleGrantedAuthority("ROLE_" + r)));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + primaryRole));
 
         // Lettvekts principal
         var principal = new UserPrincipal(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail());
 
         return new UsernamePasswordAuthenticationToken(principal, jwt, List.copyOf(authorities));
+    }
+
+    private static String pickPrimaryRole(Set<String> roles) {
+        for (String wanted : ROLE_PRIORITY) {
+            if (roles.contains(wanted))
+                return wanted;
+        }
+        return ROLE_PRIORITY.getLast(); // fallback
     }
 
     private static String orEmpty(String v) {

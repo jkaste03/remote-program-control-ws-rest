@@ -1,7 +1,6 @@
 package com.github.jkaste03.controller;
 
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +28,8 @@ public class DeviceController {
     public List<DeviceDto> getDevicesForCurrentUser(Authentication authentication,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        Set<String> userRoleNames = SecurityUtils.extractRoleNames(authentication);
-        boolean isAdmin = userRoleNames.contains("ADMIN");
+        String userRoleName = SecurityUtils.extractRoleName(authentication);
+        boolean isAdmin = userRoleName.equals("ADMIN");
 
         Long userId = principal.id();
         return deviceService.getDevicesForUser(userId, isAdmin);
