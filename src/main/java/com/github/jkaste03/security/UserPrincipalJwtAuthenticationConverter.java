@@ -32,13 +32,20 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         // Provisionér/oppdater bruker
+        String iss = jwt.getIssuer() != null ? jwt.getIssuer().toString() : null;
+        String sub = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
         String first = orEmpty(jwt.getClaimAsString("given_name"));
         String last = orEmpty(jwt.getClaimAsString("family_name"));
-        var user = provisioningService.ensureUserExists(email, first, last);
+        String username = jwt.getClaimAsString("preferred_username");
 
         // Authorities: base (scopes) + Keycloak-roller
         Set<String> roleNames = extractRoleNames(jwt, clientId);
+
+        String primaryRole = roleNames.contains("ADMIN") ? "ADMIN" : "USER";
+
+        var user = provisioningService.ensureUserFromJwt(iss, sub, username, email, first, last, primaryRole);
+
         var authorities = new LinkedHashSet<GrantedAuthority>();
         var base = delegate.convert(jwt);
 

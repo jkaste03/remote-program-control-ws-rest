@@ -1,25 +1,27 @@
 package com.github.jkaste03.model;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.hibernate.Hibernate;
-import org.hibernate.annotations.NaturalId;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+		@UniqueConstraint(name = "uk_user_auth_provider_subject", columnNames = { "auth_provider", "auth_subject" }),
+}, indexes = {
+		@Index(name = "idx_user_auth", columnList = "auth_provider,auth_subject")
+})
 public class User {
 
 	@Id
@@ -33,24 +35,42 @@ public class User {
 	@Column(name = "lastname", nullable = false, length = 50)
 	private String lastName;
 
-	@NaturalId(mutable = true)
 	@Column(nullable = false, length = 120, unique = true)
 	private String email;
+
+	@Column(nullable = false, length = 80, unique = true)
+	private String username;
+
+	@Column(name = "auth_provider", length = 200, nullable = true) // settes ved første innlogging
+	private String authProvider; // = jwt.getIssuer().toString()
+
+	@Column(name = "auth_subject", length = 200, nullable = true)
+	private String authSubject; // = jwt.getSubject()
 
 	// @Column(nullable = false, length = 64)
 	// @JsonIgnore
 	// private String password;
 
-	@OneToMany(mappedBy = "user", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
-	private Set<UserRole> roles = new HashSet<>();
+	@ManyToOne(optional = false, fetch = FetchType.LAZY)
+	@JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))
+	private Role role;
 
 	protected User() {
 		/* for JPA */ }
 
-	public User(String email, String firstName, String lastName) {
+	public User(String email, String firstName, String lastName, String username, Role role) {
 		this.email = email;
 		this.firstName = firstName;
 		this.lastName = lastName;
+		this.username = username;
+		this.role = role;
+	}
+
+	public void linkIdentityIfMissing(String issuer, String subject) {
+		if (this.authProvider == null)
+			this.authProvider = issuer;
+		if (this.authSubject == null)
+			this.authSubject = subject;
 	}
 
 	public Long getId() {
@@ -81,28 +101,20 @@ public class User {
 		this.email = email;
 	}
 
-	// --- Helper-metoder (hold begge sider i sync) ---
-	public boolean addRole(Role role) {
-		boolean exists = roles.stream().anyMatch(ur -> ur.getRole().equals(role));
-		if (exists)
-			return false;
-		roles.add(UserRole.link(this, role));
-		return true;
+	public String getUsername() {
+		return username;
 	}
 
-	public boolean removeRole(Role role) {
-		return roles.removeIf(ur -> ur.getRole().equals(role));
+	public void setUsername(String username) {
+		this.username = username;
 	}
 
-	// Ikke gi ut den muterbare samlingen direkte:
-	public Set<UserRole> getUserRoles() {
-		return Set.copyOf(roles);
+	public Role getRole() {
+		return role;
 	}
 
-	// Praktisk “view” for lesing/DTO:
-	@Transient
-	public Set<String> getRoleNames() {
-		return roles.stream().map(ur -> ur.getRole().getName()).collect(java.util.stream.Collectors.toSet());
+	public void setRole(Role role) {
+		this.role = role;
 	}
 
 	@Override

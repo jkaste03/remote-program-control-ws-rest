@@ -38,65 +38,40 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        // Skipp hvis noe allerede finnes (trygt selv om du antar tom DB)
-        if (roleRepo.count() > 0 || userRepo.count() > 0 || deviceRepo.count() > 0) {
-            log.info("Seeder hoppet over: det finnes allerede data.");
-            return;
-        }
-
         log.info("Starter seeding av grunndata ...");
 
-        // 1) Roller (data-drevet Roller beholdes)
+        // i ConfigCommandLineRunner.run(...)
         Role roleUser = createRole("USER");
         Role roleAdmin = createRole("ADMIN");
 
-        // 2) Brukere (MANGE roller via UserRole-link)
-        User admin = new User("admin@local", "Admin", "User");
-        admin.addRole(roleAdmin);
-        admin.addRole(roleUser); // admin har også USER
+        // Opprett brukere som i Keycloak (så allowedUsers kan referere dem direkte)
+        User u1 = new User("user1@email.com", "User1_Firstname", "User1_Lastname", "user1", roleUser);
+        User u2 = new User("user2@email.com", "User2_Firstname", "User2_Lastname", "user2", roleAdmin);
 
-        User regular = new User("user@local", "Regular", "User");
-        regular.addRole(roleUser);
+        User u3 = new User("user3@email.com", "User3_Firstname", "User3_Lastname", "user3", roleUser);
 
-        userRepo.saveAll(List.of(admin, regular));
-        // Merk: CascadeType.PERSIST på User.roles gjør at UserRole-lenkene persisteres
-        // samtidig
+        User u4 = new User("user4@email.com", "User4_Firstname", "User4_Lastname", "user4", roleUser);
 
-        // 3) Enheter
-        Device userPc = new Device(
-                "User-PC",
-                regular,
-                Device.Status.OFFLINE,
-                null,
-                "00:11:22:33:44:55",
-                null);
+        userRepo.saveAll(List.of(u1, u2, u3, u4));
 
-        Device adminServer = new Device(
-                "Admin-Server",
-                admin,
-                Device.Status.ONLINE,
-                Instant.now(),
-                "00:11:22:33:44:66",
+        // Enheter + programmer
+        Device userPc = new Device("User1-PC", u1, Device.Status.OFFLINE, null, "00:11:22:33:44:55", null);
+        Device adminServer = new Device("Admin-Server", u2, Device.Status.ONLINE, Instant.now(), "00:11:22:33:44:66",
                 "198.51.100.10");
 
-        // 4) Programmer
-        // - Calculator: public (alle kan; ingen unntak nødvendig)
+        // Public program som alle ser
         Program calc = new Program("Calculator", true);
+        Program privateProgram = new Program("SecretApp", false);
 
-        // - AdminTool: privat (ingen kan, UNNTATT admin)
+        // Privat admin-verktøy (tillat bare adminbrukeren fra Keycloak)
         Program adminTool = new Program("AdminTool", false);
-        adminTool.allow(admin);
+        adminTool.allow(u2);
 
-        // (valgfritt) Et ekstra public program på admin-serveren
-        Program logViewer = new Program("LogViewer", true);
-
-        // Koble programmer til enheter (holder begge sider i sync)
+        // Knyt programmer
         userPc.addProgram(calc);
+        userPc.addProgram(privateProgram);
         adminServer.addProgram(adminTool);
-        adminServer.addProgram(logViewer);
 
-        // 5) Lagre (Device -> Program cascade = ALL, så programmer persisteres
-        // automatisk)
         deviceRepo.saveAll(List.of(userPc, adminServer));
 
         log.info("Seeding ferdig. Roller: {}, Brukere: {}, Enheter: {}",

@@ -47,7 +47,7 @@ public class DeviceService {
                     .map(p -> new ProgramDto(p.getId(), p.getName(), p.isPublic()))
                     .toList();
 
-            result.add(new DeviceDto(d.getId(), d.getName(), programDtos));
+            result.add(new DeviceDto(d.getId(), d.getName(), d.getUser().getUsername(), programDtos));
         }
         return result;
     }
