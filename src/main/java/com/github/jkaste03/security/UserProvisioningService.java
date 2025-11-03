@@ -55,7 +55,7 @@ public class UserProvisioningService {
 
 		// 3) Opprett ny hvis ingen funnet
 		if (user == null) {
-			user = new User(email, first, last, username, role);
+			user = new User(email, username, role);
 			isNew = true;
 		}
 
