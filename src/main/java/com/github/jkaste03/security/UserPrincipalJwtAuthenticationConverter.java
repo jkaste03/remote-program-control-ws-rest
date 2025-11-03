@@ -55,7 +55,7 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         authorities.add(new SimpleGrantedAuthority("ROLE_" + primaryRole));
 
         // Lettvekts principal
-        var principal = new UserPrincipal(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail());
+        var principal = new UserPrincipal(user.getId(), user.getEmail());
 
         return new UsernamePasswordAuthenticationToken(principal, jwt, List.copyOf(authorities));
     }

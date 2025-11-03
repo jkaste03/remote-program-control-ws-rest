@@ -4,8 +4,6 @@ import java.io.Serializable;
 
 public record UserPrincipal(
 		Long id,
-		String firstname,
-		String lastname,
 		String email) implements Serializable {
 	@Override
 	public String toString() {

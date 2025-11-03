@@ -29,12 +29,6 @@ public class User {
 	@SequenceGenerator(name = "role_seq", sequenceName = "role_seq", allocationSize = 50)
 	private Long id;
 
-	@Column(name = "firstname", nullable = false, length = 50)
-	private String firstName;
-
-	@Column(name = "lastname", nullable = false, length = 50)
-	private String lastName;
-
 	@Column(nullable = false, length = 120, unique = true)
 	private String email;
 
@@ -58,10 +52,8 @@ public class User {
 	protected User() {
 		/* for JPA */ }
 
-	public User(String email, String firstName, String lastName, String username, Role role) {
+	public User(String email, String username, Role role) {
 		this.email = email;
-		this.firstName = firstName;
-		this.lastName = lastName;
 		this.username = username;
 		this.role = role;
 	}
@@ -75,22 +67,6 @@ public class User {
 
 	public Long getId() {
 		return id;
-	}
-
-	public String getFirstName() {
-		return firstName;
-	}
-
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
-
-	public String getLastName() {
-		return lastName;
-	}
-
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
 	}
 
 	public String getEmail() {

@@ -62,14 +62,6 @@ public class UserProvisioningService {
 		// 4) Link stabil identitet hvis mangler
 		user.linkIdentityIfMissing(issuer, subject);
 
-		// 5) Oppdater mutable felt (navn, email, username)
-		if (!user.getFirstName().equals(first)) {
-			user.setFirstName(first);
-		}
-		if (!user.getLastName().equals(last)) {
-			user.setLastName(last);
-		}
-
 		// E-post: unik, men kan endres. Sett hvis endret og ikke i konflikt.
 		if (!user.getEmail().equals(email)) {
 			user.setEmail(email);
