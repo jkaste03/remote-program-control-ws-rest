@@ -13,6 +13,7 @@ public class UserProvisioningService {
 
 	private final UserRepository userRepository;
 	private final RoleRepository roleRepository;
+	private static final String DEFAULT_ROLE_NAME = "USER";
 
 	public UserProvisioningService(UserRepository userRepository, RoleRepository roleRepository) {
 		this.userRepository = userRepository;
@@ -36,10 +37,7 @@ public class UserProvisioningService {
 			String issuer,
 			String subject,
 			String username,
-			String email,
-			String first,
-			String last,
-			String primaryRoleName) {
+			String email) {
 		// 1) Primært oppslag: stabil IdP-identitet
 		User user = userRepository.findByAuthProviderAndAuthSubject(issuer, subject).orElse(null);
 
@@ -47,14 +45,12 @@ public class UserProvisioningService {
 			user = userRepository.findByEmail(email).orElse(null);
 		}
 
-		// 2) Én rolle per bruker – plukk primær
-		Role role = roleRepository.findByName(primaryRoleName)
-				.orElse(null);
-
 		boolean isNew = false;
 
 		// 3) Opprett ny hvis ingen funnet
 		if (user == null) {
+			Role role = roleRepository.findByName(DEFAULT_ROLE_NAME)
+					.orElseThrow(() -> new IllegalStateException("Default role USER not found"));
 			user = new User(email, username, role);
 			isNew = true;
 		}
@@ -70,10 +66,6 @@ public class UserProvisioningService {
 		// Username: unik, kan endres. Sett hvis endret og ikke i konflikt.
 		if (!user.getUsername().equals(username)) {
 			user.setUsername(username);
-		}
-
-		if (!user.getRole().equals(role)) {
-			user.setRole(role);
 		}
 
 		// 6) Persist

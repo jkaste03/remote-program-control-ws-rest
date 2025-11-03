@@ -1,6 +1,5 @@
 package com.github.jkaste03.security;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -64,8 +63,7 @@ public class ApplicationSecurity {
 
 	@Bean
 	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter(
-			UserProvisioningService provisioningService,
-			@Value("${keycloak.resource:dat152oblig2}") String clientId) {
-		return new UserPrincipalJwtAuthenticationConverter(provisioningService, clientId);
+			UserProvisioningService provisioningService) {
+		return new UserPrincipalJwtAuthenticationConverter(provisioningService);
 	}
 }

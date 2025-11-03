@@ -1,14 +1,8 @@
 package com.github.jkaste03.security;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,19 +10,18 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+
+import com.github.jkaste03.model.User;
+
 import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private static final List<String> ROLE_PRIORITY = List.of("ADMIN", "USER");
-
     private final JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
     private final UserProvisioningService provisioningService;
-    private final String clientId;
 
-    public UserPrincipalJwtAuthenticationConverter(UserProvisioningService provisioningService, String clientId) {
+    public UserPrincipalJwtAuthenticationConverter(UserProvisioningService provisioningService) {
         this.provisioningService = Objects.requireNonNull(provisioningService);
-        this.clientId = Objects.requireNonNull(clientId);
     }
 
     @Override
@@ -37,66 +30,19 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         String iss = jwt.getIssuer() != null ? jwt.getIssuer().toString() : null;
         String sub = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
-        String first = orEmpty(jwt.getClaimAsString("given_name"));
-        String last = orEmpty(jwt.getClaimAsString("family_name"));
         String username = jwt.getClaimAsString("preferred_username");
 
-        // Authorities: base (scopes) + Keycloak-roller
-        Set<String> roleNames = extractRoleNames(jwt, clientId);
-
-        String primaryRole = pickPrimaryRole(roleNames);
-
-        var user = provisioningService.ensureUserFromJwt(iss, sub, username, email, first, last, primaryRole);
+        User user = provisioningService.ensureUserFromJwt(iss, sub, username, email);
 
         var authorities = new LinkedHashSet<GrantedAuthority>();
         var base = delegate.convert(jwt);
 
         authorities.addAll(base);
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + primaryRole));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
 
         // Lettvekts principal
         var principal = new UserPrincipal(user.getId(), user.getEmail());
 
         return new UsernamePasswordAuthenticationToken(principal, jwt, List.copyOf(authorities));
-    }
-
-    private static String pickPrimaryRole(Set<String> roles) {
-        for (String wanted : ROLE_PRIORITY) {
-            if (roles.contains(wanted))
-                return wanted;
-        }
-        return ROLE_PRIORITY.getLast(); // fallback
-    }
-
-    private static String orEmpty(String v) {
-        return v == null ? "" : v;
-    }
-
-    private static Set<String> extractRoleNames(Jwt jwt, String clientId) {
-        var roles = new LinkedHashSet<String>();
-
-        Object realmAccess = jwt.getClaim("realm_access");
-        if (realmAccess instanceof Map<?, ?> m && m.get("roles") instanceof Collection<?> vals) {
-            vals.forEach(v -> {
-                if (v != null)
-                    roles.add(v.toString());
-            });
-        }
-
-        Object resourceAccess = jwt.getClaim("resource_access");
-        if (resourceAccess instanceof Map<?, ?> m && m.get(clientId) instanceof Map<?, ?> cm) {
-            Object clientRoles = cm.get("roles");
-            if (clientRoles instanceof Collection<?> vals) {
-                vals.forEach(v -> {
-                    if (v != null)
-                        roles.add(v.toString());
-                });
-            }
-        }
-
-        return roles.stream()
-                .map(s -> s.trim().toUpperCase(Locale.ROOT))
-                .filter(s -> !s.isBlank())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }
