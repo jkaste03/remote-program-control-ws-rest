@@ -39,11 +39,8 @@ public class UserProvisioningService {
 			String username,
 			String email) {
 		// 1) Primært oppslag: stabil IdP-identitet
-		User user = userRepository.findByAuthProviderAndAuthSubject(issuer, subject).orElse(null);
-
-		if (user == null) {
-			user = userRepository.findByEmail(email).orElse(null);
-		}
+		User user = userRepository.findByAuthProviderAndAuthSubject(issuer, subject)
+				.orElseGet(() -> userRepository.findByEmail(email).orElse(null));
 
 		boolean isNew = false;
 
@@ -56,6 +53,7 @@ public class UserProvisioningService {
 		}
 
 		// 4) Link stabil identitet hvis mangler
+		// TODO: Muligens flutt inn i if ovenfor
 		user.linkIdentityIfMissing(issuer, subject);
 
 		// E-post: unik, men kan endres. Sett hvis endret og ikke i konflikt.
