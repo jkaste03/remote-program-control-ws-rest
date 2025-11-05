@@ -52,12 +52,16 @@ public class User {
 	protected User() {
 		/* for JPA */ }
 
-	public User(String email, String username, String authProvider, String authSubject, Role role) {
+	public User(String email, String username, Role role) {
 		this.email = email;
 		this.username = username;
+		this.role = role;
+	}
+
+	public User(String email, String username, String authProvider, String authSubject, Role role) {
+		this(email, username, role);
 		this.authProvider = authProvider;
 		this.authSubject = authSubject;
-		this.role = role;
 	}
 
 	public void linkIdentityIfMissing(String issuer, String subject) {
