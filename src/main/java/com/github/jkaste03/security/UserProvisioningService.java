@@ -53,7 +53,7 @@ public class UserProvisioningService {
 		}
 
 		// 4) Link stabil identitet hvis mangler
-		// TODO: Muligens flutt inn i if ovenfor
+		// TODO: Muligens flytt inn i if ovenfor
 		user.linkIdentityIfMissing(issuer, subject);
 
 		// E-post: unik, men kan endres. Sett hvis endret og ikke i konflikt.

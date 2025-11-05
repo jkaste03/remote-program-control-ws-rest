@@ -25,8 +25,8 @@ import jakarta.persistence.UniqueConstraint;
 public class User {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "role_seq")
-	@SequenceGenerator(name = "role_seq", sequenceName = "role_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
+	@SequenceGenerator(name = "user_seq", sequenceName = "user_seq", allocationSize = 50)
 	private Long id;
 
 	@Column(nullable = false, length = 120, unique = true)
