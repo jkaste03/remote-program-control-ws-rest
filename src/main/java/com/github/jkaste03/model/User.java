@@ -52,9 +52,11 @@ public class User {
 	protected User() {
 		/* for JPA */ }
 
-	public User(String email, String username, Role role) {
+	public User(String email, String username, String authProvider, String authSubject, Role role) {
 		this.email = email;
 		this.username = username;
+		this.authProvider = authProvider;
+		this.authSubject = authSubject;
 		this.role = role;
 	}
 

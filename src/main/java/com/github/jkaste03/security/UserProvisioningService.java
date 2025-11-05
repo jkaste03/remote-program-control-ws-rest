@@ -1,5 +1,7 @@
 package com.github.jkaste03.security;
 
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,22 +29,17 @@ public class UserProvisioningService {
 			String email) {
 
 		// 1) Primært: stabil Keycloak-identitet
-		User user = userRepo
-				.findByAuthProviderAndAuthSubject(issuer, subject)
-				.orElseGet(() -> userRepo.findByEmail(email).orElse(null));
-
-		boolean isNew = false;
-
-		// 2) Opprett ny bruker hvis vi ikke fant noen
-		if (user == null) {
+		Optional<User> maybeUser = userRepo.findByAuthProviderAndAuthSubject(issuer, subject);
+		User user;
+		if (maybeUser.isPresent()) {
+			user = maybeUser.get();
+		} else {
+			// 2) Opprett ny bruker hvis vi ikke fant noen
 			Role role = roleRepo.findByName(DEFAULT_ROLE_NAME)
 					.orElseThrow(() -> new IllegalStateException("Default role USER not found"));
-			user = new User(email, username, role);
-			isNew = true;
+			user = new User(email, username, issuer, subject, role);
+			return userRepo.save(user);
 		}
-
-		// 3) Sørg for at Keycloak-identitet er linket (idempotent)
-		user.linkIdentityIfMissing(issuer, subject);
 
 		// 4) Oppdater email/username hvis de faktisk har endret seg
 		if (email != null && !email.equals(user.getEmail())) {
@@ -52,9 +49,6 @@ public class UserProvisioningService {
 			user.setUsername(username);
 		}
 
-		if (isNew) {
-			return userRepo.save(user);
-		}
 		// eksisterende bruker er allerede managed pga @Transactional
 		return user;
 	}
