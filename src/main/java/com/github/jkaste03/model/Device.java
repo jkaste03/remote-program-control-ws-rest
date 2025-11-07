@@ -53,7 +53,7 @@ public class Device {
 	private Set<Program> programs = new LinkedHashSet<>();
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 16)
+	@Column(nullable = false, length = 7)
 	private Status status = Status.OFFLINE;
 
 	@Column(name = "last_seen")
