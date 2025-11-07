@@ -6,8 +6,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.github.jkaste03.dto.DeviceDto;
-import com.github.jkaste03.dto.ProgramDto;
+import com.github.jkaste03.dto.response.DeviceResponse;
+import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.model.Device;
 import com.github.jkaste03.model.Program;
 import com.github.jkaste03.repository.DeviceRepository;
@@ -29,7 +29,7 @@ public class DeviceService {
      * - Ikke-eierskap: bare programmer som er public ELLER hvor brukeren er allowed
      */
     @Transactional(readOnly = true)
-    public List<DeviceDto> getDevicesForUser(Long userId, boolean isAdmin) {
+    public List<DeviceResponse> getDevicesForUser(Long userId, boolean isAdmin) {
         final List<Device> devices;
         if (isAdmin) {
             devices = deviceRepository.findAllWithPrograms();
@@ -37,17 +37,17 @@ public class DeviceService {
             devices = deviceRepository.findDevicesUserCanInteractWithPrefetched(userId);
         }
 
-        List<DeviceDto> result = new ArrayList<>(devices.size());
+        List<DeviceResponse> result = new ArrayList<>(devices.size());
         for (Device d : devices) {
             boolean isOwner = d.getOwner().getId().equals(userId);
 
-            List<ProgramDto> programDtos = d.getPrograms()
+            List<ProgramResponse> programDtos = d.getPrograms()
                     .stream()
                     .filter(p -> filterProgramForUser(p, userId, isOwner, isAdmin))
-                    .map(p -> new ProgramDto(p.getId(), p.getName(), p.isPublic()))
+                    .map(p -> new ProgramResponse(p.getId(), p.getName(), p.isPublic()))
                     .toList();
 
-            result.add(new DeviceDto(d.getId(), d.getName(), d.getOwner().getUsername(), programDtos));
+            result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programDtos));
         }
         return result;
     }
