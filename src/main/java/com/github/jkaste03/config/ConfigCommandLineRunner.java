@@ -1,4 +1,4 @@
-package com.github.jkaste03.main.config;
+package com.github.jkaste03.config;
 
 import java.time.Instant;
 import java.util.List;
