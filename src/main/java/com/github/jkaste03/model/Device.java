@@ -23,12 +23,13 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "devices", indexes = {
-		@Index(name = "idx_device_owner_id", columnList = "owner_id") // raskere søk per bruker
-})
+		@Index(name = "idx_device_owner_id", columnList = "owner_id") }, // raskere søk per bruker
+		uniqueConstraints = @UniqueConstraint(name = "uq_device_owner_name", columnNames = { "owner_id", "name" }))
 public class Device {
 
 	public enum Status {
