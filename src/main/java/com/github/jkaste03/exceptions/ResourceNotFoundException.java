@@ -12,7 +12,7 @@ public class ResourceNotFoundException extends RuntimeException {
 	private static final String DEFAULT_MESSAGE_KEY = "problem.not-found.detail";
 
 	private final String messageKey;
-	private final Object[] messageArgs;
+	private final transient Object[] messageArgs;
 
 	public ResourceNotFoundException() {
 		this(DEFAULT_MESSAGE_KEY);
