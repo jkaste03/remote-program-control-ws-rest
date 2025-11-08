@@ -6,19 +6,26 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.jkaste03.dto.request.DeviceCreateRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
+import com.github.jkaste03.exceptions.ConflictException;
+import com.github.jkaste03.exceptions.ResourceNotFoundException;
 import com.github.jkaste03.model.Device;
 import com.github.jkaste03.model.Program;
+import com.github.jkaste03.model.User;
 import com.github.jkaste03.repository.DeviceRepository;
+import com.github.jkaste03.repository.UserRepository;
 
 @Service
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final UserRepository userRepository;
 
-    public DeviceService(DeviceRepository deviceRepository) {
+    public DeviceService(DeviceRepository deviceRepository, UserRepository userRepository) {
         this.deviceRepository = deviceRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -29,7 +36,7 @@ public class DeviceService {
      * - Ikke-eierskap: bare programmer som er public ELLER hvor brukeren er allowed
      */
     @Transactional(readOnly = true)
-    public List<DeviceResponse> getDevicesForUser(Long userId, boolean isAdmin) {
+    public List<DeviceResponse> getDevicesForUser(long userId, boolean isAdmin) {
         final List<Device> devices;
         if (isAdmin) {
             devices = deviceRepository.findAllWithPrograms();
@@ -52,11 +59,30 @@ public class DeviceService {
         return result;
     }
 
-    private boolean filterProgramForUser(Program p, Long userId, boolean isOwner, boolean isAdmin) {
+    private boolean filterProgramForUser(Program p, long userId, boolean isOwner, boolean isAdmin) {
         if (isAdmin || isOwner)
             return true;
         if (p.isPublic())
             return true;
         return p.getAllowedUsers().stream().anyMatch(u -> u.getId().equals(userId));
+    }
+
+    public DeviceResponse createDevice(DeviceCreateRequest createRequest, long userId) {
+        String deviceName = createRequest.name();
+        String macAddress = createRequest.macAddress();
+        String publicIp = createRequest.publicIp();
+        User owner = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("problem.not-found.user", userId));
+
+        if (deviceRepository.existsByOwnerIdAndName(userId, createRequest.name())) {
+            throw new ConflictException("device.name.taken", createRequest.name());
+        }
+
+        Device device = new Device(deviceName, macAddress, publicIp, owner);
+        Device savedDevice = deviceRepository.save(device);
+        return new DeviceResponse(savedDevice.getId(), savedDevice.getName(), owner.getUsername(), List.of(),
+                savedDevice.getStatus(),
+                savedDevice.getLastSeen(), savedDevice.getCreatedAt(), savedDevice.getPublicIp(),
+                savedDevice.getMacAddress());
     }
 }
