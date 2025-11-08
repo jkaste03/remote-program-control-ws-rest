@@ -44,6 +44,12 @@ public class Device {
 	@Column(nullable = false, length = 100)
 	private String name;
 
+	@Column(name = "mac_address", length = 17)
+	private String macAddress;
+
+	@Column(name = "public_ip", length = 45)
+	private String publicIp;
+
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "owner_id", nullable = false, foreignKey = @ForeignKey(name = "fk_device_owner"))
 	@NotNull
@@ -63,22 +69,20 @@ public class Device {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
-	@Column(name = "mac_address", length = 17)
-	private String macAddress;
-
-	@Column(name = "public_ip", length = 45)
-	private String publicIp;
-
 	protected Device() {
 		/* for JPA */ }
 
-	public Device(String name, User owner, Status status, Instant lastSeen, String macAddress, String publicIp) {
+	public Device(String name, String macAddress, String publicIp, User owner) {
 		this.name = name;
 		this.owner = owner;
-		this.status = status;
-		this.lastSeen = lastSeen;
 		this.macAddress = macAddress;
 		this.publicIp = publicIp;
+	}
+
+	public Device(String name, String macAddress, String publicIp, User owner, Status status, Instant lastSeen) {
+		this(name, macAddress, publicIp, owner);
+		this.status = status;
+		this.lastSeen = lastSeen;
 	}
 
 	public Long getId() {
@@ -91,6 +95,22 @@ public class Device {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public String getMacAddress() {
+		return macAddress;
+	}
+
+	public void setMacAddress(String macAddress) {
+		this.macAddress = macAddress;
+	}
+
+	public String getPublicIp() {
+		return publicIp;
+	}
+
+	public void setPublicIp(String publicIp) {
+		this.publicIp = publicIp;
 	}
 
 	public User getOwner() {
@@ -113,32 +133,12 @@ public class Device {
 		return lastSeen;
 	}
 
-	public void setLastSeen(Instant lastSeen) {
-		this.lastSeen = lastSeen;
+	public void markSeen(Instant seenAt) {
+		this.lastSeen = seenAt == null ? Instant.now() : seenAt;
 	}
 
 	public Instant getCreatedAt() {
 		return createdAt;
-	}
-
-	public String getMacAddress() {
-		return macAddress;
-	}
-
-	public void setMacAddress(String macAddress) {
-		this.macAddress = macAddress;
-	}
-
-	public String getPublicIp() {
-		return publicIp;
-	}
-
-	public void setPublicIp(String publicIp) {
-		this.publicIp = publicIp;
-	}
-
-	public void markSeen(Instant seenAt) {
-		this.lastSeen = seenAt == null ? Instant.now() : seenAt;
 	}
 
 	public Set<Program> getPrograms() {
