@@ -9,6 +9,7 @@ import com.github.jkaste03.model.Role;
 import com.github.jkaste03.model.User;
 import com.github.jkaste03.repository.RoleRepository;
 import com.github.jkaste03.repository.UserRepository;
+import com.github.jkaste03.exceptions.ResourceNotFoundException;
 
 @Service
 public class UserProvisioningService {
@@ -28,28 +29,35 @@ public class UserProvisioningService {
 			String username,
 			String email) {
 
-		// 1) Primært: stabil Keycloak-identitet
-		Optional<User> maybeUser = userRepo.findByAuthProviderAndAuthSubject(issuer, subject);
-		User user;
-		if (maybeUser.isPresent()) {
-			user = maybeUser.get();
-		} else {
-			// 2) Opprett ny bruker hvis vi ikke fant noen
-			Role role = roleRepo.findByName(DEFAULT_ROLE_NAME)
-					.orElseThrow(() -> new IllegalStateException("Default role USER not found"));
-			user = new User(email, username, issuer, subject, role);
-			return userRepo.save(user);
-		}
-
-		// 4) Oppdater email/username hvis de faktisk har endret seg
+		// Primært: stabil Keycloak-identitet
+		User user = userRepo.findByAuthProviderAndAuthSubject(issuer, subject)
+				.orElseGet(() -> tryFindExistingByEmail(email, issuer, subject)
+						.orElseGet(() -> createNewUser(email, username, issuer, subject)));
+		// Oppdater email/username hvis de faktisk har endret seg
 		if (email != null && !email.equals(user.getEmail())) {
 			user.setEmail(email);
 		}
 		if (username != null && !username.equals(user.getUsername())) {
 			user.setUsername(username);
 		}
-
-		// eksisterende bruker er allerede managed pga @Transactional
+		user.getRole().getName(); // Tving innlasting av rolle (for sikkerhetskontekst)
 		return user;
+	}
+
+	private Optional<User> tryFindExistingByEmail(String email, String issuer, String subject) {
+		if (email == null) {
+			return Optional.empty();
+		}
+		return userRepo.findByEmail(email).map(existing -> {
+			existing.linkIdentityIfMissing(issuer, subject);
+			return existing;
+		});
+	}
+
+	private User createNewUser(String email, String username, String issuer, String subject) {
+		Role role = roleRepo.findByName(DEFAULT_ROLE_NAME)
+				.orElseThrow(() -> new ResourceNotFoundException("problem.not-found.role", DEFAULT_ROLE_NAME));
+		User user = new User(email, username, issuer, subject, role);
+		return userRepo.save(user);
 	}
 }

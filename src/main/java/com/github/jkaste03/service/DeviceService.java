@@ -2,6 +2,7 @@ package com.github.jkaste03.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,8 @@ import com.github.jkaste03.repository.UserRepository;
 
 @Service
 public class DeviceService {
+
+    private static final int STANDARD_WOL_PORT = 9;
 
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
@@ -54,7 +57,8 @@ public class DeviceService {
                     .map(p -> new ProgramResponse(p.getId(), p.getName(), p.isPublic()))
                     .toList();
 
-            result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programDtos));
+            result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programDtos,
+                    d.getStatus(), d.getLastSeen(), d.getCreatedAt()));
         }
         return result;
     }
@@ -75,14 +79,19 @@ public class DeviceService {
                 .orElseThrow(() -> new ResourceNotFoundException("problem.not-found.user", userId));
 
         if (deviceRepository.existsByOwnerIdAndName(userId, createRequest.name())) {
-            throw new ConflictException("device.name.taken", createRequest.name());
+            throw new ConflictException("device.owner-name-conflict", createRequest.name());
         }
 
-        Device device = new Device(deviceName, macAddress, publicIp, owner);
+        if (deviceRepository.existsByOwnerIdAndMacAddress(userId, createRequest.macAddress())) {
+            throw new ConflictException("device.owner-mac-address-conflict", createRequest.macAddress());
+        }
+
+        int wolPort = Optional.ofNullable(createRequest.wakeOnLanPort()).orElse(STANDARD_WOL_PORT);
+        Device device = new Device(deviceName, publicIp, wolPort, macAddress, owner);
         Device savedDevice = deviceRepository.save(device);
+
         return new DeviceResponse(savedDevice.getId(), savedDevice.getName(), owner.getUsername(), List.of(),
-                savedDevice.getStatus(),
-                savedDevice.getLastSeen(), savedDevice.getCreatedAt(), savedDevice.getPublicIp(),
-                savedDevice.getMacAddress());
+                savedDevice.getStatus(), savedDevice.getLastSeen(), savedDevice.getCreatedAt(),
+                savedDevice.getPublicIp(), savedDevice.getWakeOnLanPort(), savedDevice.getMacAddress());
     }
 }

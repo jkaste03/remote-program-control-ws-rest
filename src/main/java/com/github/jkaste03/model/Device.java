@@ -29,7 +29,10 @@ import jakarta.validation.constraints.NotNull;
 @Entity
 @Table(name = "devices", indexes = {
 		@Index(name = "idx_device_owner_id", columnList = "owner_id") }, // raskere søk per bruker
-		uniqueConstraints = @UniqueConstraint(name = "uq_device_owner_name", columnNames = { "owner_id", "name" }))
+		uniqueConstraints = {
+				@UniqueConstraint(name = "uq_device_owner_name", columnNames = { "owner_id", "name" }),
+				@UniqueConstraint(name = "uq_device_owner_mac", columnNames = { "owner_id", "mac_address" })
+		})
 public class Device {
 
 	public enum Status {
@@ -45,11 +48,14 @@ public class Device {
 	@Column(nullable = false, length = 100)
 	private String name;
 
-	@Column(name = "mac_address", length = 17)
-	private String macAddress;
-
-	@Column(name = "public_ip", length = 45)
+	@Column(name = "public_ip", nullable = false, length = 45)
 	private String publicIp;
+
+	@Column(name = "wol_port", nullable = false)
+	private int wakeOnLanPort;
+
+	@Column(name = "mac_address", nullable = false, length = 17)
+	private String macAddress;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "owner_id", nullable = false, foreignKey = @ForeignKey(name = "fk_device_owner"))
@@ -73,15 +79,17 @@ public class Device {
 	protected Device() {
 		/* for JPA */ }
 
-	public Device(String name, String macAddress, String publicIp, User owner) {
+	public Device(String name, String publicIp, int wakeOnLanPort, String macAddress, User owner) {
 		this.name = name;
 		this.owner = owner;
 		this.macAddress = macAddress;
 		this.publicIp = publicIp;
+		this.wakeOnLanPort = wakeOnLanPort;
 	}
 
-	public Device(String name, String macAddress, String publicIp, User owner, Status status, Instant lastSeen) {
-		this(name, macAddress, publicIp, owner);
+	public Device(String name, String publicIp, int wakeOnLanPort, String macAddress, User owner, Status status,
+			Instant lastSeen) {
+		this(name, publicIp, wakeOnLanPort, macAddress, owner);
 		this.status = status;
 		this.lastSeen = lastSeen;
 	}
@@ -98,20 +106,28 @@ public class Device {
 		this.name = name;
 	}
 
-	public String getMacAddress() {
-		return macAddress;
-	}
-
-	public void setMacAddress(String macAddress) {
-		this.macAddress = macAddress;
-	}
-
 	public String getPublicIp() {
 		return publicIp;
 	}
 
 	public void setPublicIp(String publicIp) {
 		this.publicIp = publicIp;
+	}
+
+	public int getWakeOnLanPort() {
+		return wakeOnLanPort;
+	}
+
+	public void setWakeOnLanPort(int wakeOnLanPort) {
+		this.wakeOnLanPort = wakeOnLanPort;
+	}
+
+	public String getMacAddress() {
+		return macAddress;
+	}
+
+	public void setMacAddress(String macAddress) {
+		this.macAddress = macAddress;
 	}
 
 	public User getOwner() {

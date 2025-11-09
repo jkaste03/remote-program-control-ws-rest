@@ -11,14 +11,16 @@ import org.springframework.data.jpa.repository.EntityGraph;
 public interface DeviceRepository extends JpaRepository<Device, Long> {
      boolean existsByOwnerIdAndName(Long ownerId, String name);
 
-     @EntityGraph(attributePaths = { "programs", "programs.allowedUsers", "user" })
+     boolean existsByOwnerIdAndMacAddress(long userId, String macAddress);
+
+     @EntityGraph(attributePaths = { "programs", "programs.allowedUsers", "owner" })
      @Query("select d from Device d")
      List<Device> findAllWithPrograms();
 
-     @EntityGraph(attributePaths = { "programs", "programs.allowedUsers", "user" })
+     @EntityGraph(attributePaths = { "programs", "programs.allowedUsers", "owner" })
      @Query("""
                select d from Device d
-               where d.user.id = :userId
+               where d.owner.id = :userId
                   or exists (
                        select 1 from Program p
                        where p.device = d and p.isPublic = true

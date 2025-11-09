@@ -55,8 +55,9 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
         userRepo.saveAll(List.of(u1, u2, u3, u4));
 
         // Enheter + programmer
-        Device userPc = new Device("User1-PC", "00:11:22:33:44:55", null, u1, Device.Status.OFFLINE, null);
-        Device adminServer = new Device("Admin-Server", "00:11:22:33:44:66", "198.51.100.10", u2, Device.Status.ONLINE,
+        Device userPc = new Device("User1-PC", "198.1.124.10", 9, "00:11:22:33:44:55", u1, Device.Status.OFFLINE, null);
+        Device adminServer = new Device("Admin-Server", "198.51.100.10", 7, "00:11:22:33:44:66", u2,
+                Device.Status.ONLINE,
                 Instant.now());
 
         // Public program som alle ser
