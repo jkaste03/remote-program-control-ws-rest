@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -34,14 +35,22 @@ public class DeviceController {
     }
 
     @GetMapping
-    public List<DeviceResponse> getDevicesForCurrentUser(Authentication authentication,
+    public List<DeviceResponse> getDevicesUserCanInteractWith(Authentication authentication,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         String userRoleName = SecurityUtils.extractRoleName(authentication);
         boolean isAdmin = userRoleName.equals("ADMIN");
 
         long userId = principal.id();
-        return deviceService.getDevicesForUser(userId, isAdmin);
+        return deviceService.getDevicesUserCanInteractWith(userId, isAdmin);
+    }
+
+    @GetMapping("/{id}")
+    public DeviceResponse getDeviceDetails(@PathVariable long id, Authentication authentication,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        long userId = principal.id();
+
+        return deviceService.getDeviceDetails(id, userId);
     }
 
     @PostMapping

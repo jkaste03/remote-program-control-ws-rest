@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class ApiExceptionHandler {
 	private static final @NonNull URI NOT_FOUND_TYPE = Objects.requireNonNull(URI.create("urn:problem-type:not-found"));
 	private static final @NonNull URI CONFLICT_TYPE = Objects.requireNonNull(URI.create("urn:problem-type:conflict"));
+	private static final @NonNull URI FORBIDDEN_TYPE = Objects.requireNonNull(URI.create("urn:problem-type:forbidden"));
 
 	private final MessageSource messageSource;
 
@@ -42,6 +43,17 @@ public class ApiExceptionHandler {
 		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
 		pd.setType(CONFLICT_TYPE);
 		pd.setTitle(msg("problem.conflict.title", locale));
+		pd.setDetail(msg(ex.messageKey(), locale, ex.messageArgs()));
+		pd.setInstance(requestInstance(request));
+		pd.setProperty("code", ex.messageKey());
+		return pd;
+	}
+
+	@ExceptionHandler(ForbiddenException.class)
+	public ProblemDetail handleForbidden(ForbiddenException ex, Locale locale, HttpServletRequest request) {
+		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
+		pd.setType(FORBIDDEN_TYPE);
+		pd.setTitle(msg("problem.forbidden.title", locale));
 		pd.setDetail(msg(ex.messageKey(), locale, ex.messageArgs()));
 		pd.setInstance(requestInstance(request));
 		pd.setProperty("code", ex.messageKey());

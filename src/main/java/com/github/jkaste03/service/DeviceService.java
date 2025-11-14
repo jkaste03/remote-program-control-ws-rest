@@ -11,6 +11,7 @@ import com.github.jkaste03.dto.request.DeviceCreateRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.exceptions.ConflictException;
+import com.github.jkaste03.exceptions.ForbiddenException;
 import com.github.jkaste03.exceptions.ResourceNotFoundException;
 import com.github.jkaste03.model.Device;
 import com.github.jkaste03.model.Program;
@@ -39,7 +40,7 @@ public class DeviceService {
      * - Ikke-eierskap: bare programmer som er public ELLER hvor brukeren er allowed
      */
     @Transactional(readOnly = true)
-    public List<DeviceResponse> getDevicesForUser(long userId, boolean isAdmin) {
+    public List<DeviceResponse> getDevicesUserCanInteractWith(long userId, boolean isAdmin) {
         final List<Device> devices;
         if (isAdmin) {
             devices = deviceRepository.findAllWithPrograms();
@@ -93,5 +94,20 @@ public class DeviceService {
         return new DeviceResponse(savedDevice.getId(), savedDevice.getName(), owner.getUsername(), List.of(),
                 savedDevice.getStatus(), savedDevice.getLastSeen(), savedDevice.getCreatedAt(),
                 savedDevice.getPublicIp(), savedDevice.getWakeOnLanPort(), savedDevice.getMacAddress());
+    }
+
+    public DeviceResponse getDeviceDetails(long id, long userId) {
+        Device device = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("problem.not-found.device", id));
+
+        if (!device.getOwner().getId().equals(userId)) {
+            throw new ForbiddenException("problem.forbidden.device-access", id);
+        }
+
+        User owner = device.getOwner();
+
+        return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), List.of(),
+                device.getStatus(), device.getLastSeen(), device.getCreatedAt(),
+                device.getPublicIp(), device.getWakeOnLanPort(), device.getMacAddress());
     }
 }
