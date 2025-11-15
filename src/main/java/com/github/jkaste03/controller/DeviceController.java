@@ -70,7 +70,7 @@ public class DeviceController {
         DeviceResponse device = deviceService.createDevice(createRequest, userId);
         EntityModel<DeviceResponse> model = deviceModelAssembler.toModel(device);
 
-        URI location = model.getRequiredLink(IanaLinkRelations.SELF).toUri();
+        URI location = model.getRequiredLink(IanaLinkRelations.SELF.value()).toUri();
 
         return ResponseEntity.created(location).body(model);
     }

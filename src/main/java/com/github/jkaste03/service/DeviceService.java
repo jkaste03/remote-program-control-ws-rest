@@ -46,7 +46,7 @@ public class DeviceService {
      * - Ikke-eierskap: bare programmer som er public ELLER hvor brukeren er allowed
      */
     @Transactional(readOnly = true)
-    public List<DeviceResponse> getDevicesUserCanInteractWith(long userId, boolean isAdmin) {
+    public @NonNull List<DeviceResponse> getDevicesUserCanInteractWith(long userId, boolean isAdmin) {
         final List<Device> devices;
         if (isAdmin) {
             devices = deviceRepository.findAllWithPrograms();
@@ -79,7 +79,7 @@ public class DeviceService {
     }
 
     @Transactional
-    public DeviceResponse createDevice(DeviceCreateRequest createRequest, long userId) {
+    public @NonNull DeviceResponse createDevice(DeviceCreateRequest createRequest, long userId) {
         String deviceName = createRequest.name();
         String macAddress = createRequest.macAddress();
         String publicIp = createRequest.publicIp();
@@ -96,13 +96,13 @@ public class DeviceService {
     }
 
     @Transactional(readOnly = true)
-    public DeviceResponse getDeviceDetails(long id, long userId) {
+    public @NonNull DeviceResponse getDeviceDetails(long id, long userId) {
         Device device = requireOwnedDevice(id, userId);
         return toDeviceDetailsResponse(device);
     }
 
     @Transactional
-    public DeviceResponse updateDevice(long id, DeviceCreateRequest updateRequest, long userId) {
+    public @NonNull DeviceResponse updateDevice(long id, DeviceCreateRequest updateRequest, long userId) {
         Device device = requireOwnedDevice(id, userId);
 
         String newName = updateRequest.name();
@@ -146,7 +146,7 @@ public class DeviceService {
         return device;
     }
 
-    private DeviceResponse toDeviceDetailsResponse(Device device) {
+    private @NonNull DeviceResponse toDeviceDetailsResponse(Device device) {
         User owner = device.getOwner();
         return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), List.of(),
                 device.getStatus(), device.getLastSeen(), device.getCreatedAt(),
