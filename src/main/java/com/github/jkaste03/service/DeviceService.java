@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
+import com.github.jkaste03.dto.request.ProgramCreateRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.exceptions.ConflictException;
@@ -18,6 +19,7 @@ import com.github.jkaste03.model.Device;
 import com.github.jkaste03.model.Program;
 import com.github.jkaste03.model.User;
 import com.github.jkaste03.repository.DeviceRepository;
+import com.github.jkaste03.repository.ProgramRepository;
 import com.github.jkaste03.repository.UserRepository;
 
 @Service
@@ -32,10 +34,13 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
+    private final ProgramRepository programRepository;
 
-    public DeviceService(DeviceRepository deviceRepository, UserRepository userRepository) {
+    public DeviceService(DeviceRepository deviceRepository, UserRepository userRepository,
+            ProgramRepository programRepository) {
         this.deviceRepository = deviceRepository;
         this.userRepository = userRepository;
+        this.programRepository = programRepository;
     }
 
     /**
@@ -58,13 +63,13 @@ public class DeviceService {
         for (Device d : devices) {
             boolean isOwner = d.getOwner().getId().equals(userId);
 
-            List<ProgramResponse> programDtos = d.getPrograms()
+            List<ProgramResponse> programResponses = d.getPrograms()
                     .stream()
                     .filter(p -> filterProgramForUser(p, userId, isOwner, isAdmin))
-                    .map(p -> new ProgramResponse(p.getId(), p.getName(), p.isPublic()))
+                    .map(this::toProgramDetailsResponse)
                     .toList();
 
-            result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programDtos,
+            result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programResponses,
                     d.getStatus(), d.getLastSeen(), d.getCreatedAt()));
         }
         return result;
@@ -92,13 +97,13 @@ public class DeviceService {
         Device device = new Device(deviceName, publicIp, wolPort, macAddress, owner);
         Device savedDevice = deviceRepository.save(device);
 
-        return toDeviceDetailsResponse(savedDevice);
+        return toDeviceDetailsResponse(savedDevice, false);
     }
 
     @Transactional(readOnly = true)
     public @NonNull DeviceResponse getDeviceDetails(long id, long userId) {
         Device device = requireOwnedDevice(id, userId);
-        return toDeviceDetailsResponse(device);
+        return toDeviceDetailsResponse(device, false);
     }
 
     @Transactional
@@ -115,7 +120,7 @@ public class DeviceService {
         device.setWakeOnLanPort(resolveWakeOnLanPort(updateRequest.wakeOnLanPort()));
         device.setMacAddress(newMacAddress);
 
-        return toDeviceDetailsResponse(device);
+        return toDeviceDetailsResponse(device, false);
     }
 
     @Transactional
@@ -146,14 +151,36 @@ public class DeviceService {
         return device;
     }
 
-    private @NonNull DeviceResponse toDeviceDetailsResponse(Device device) {
+    private @NonNull DeviceResponse toDeviceDetailsResponse(Device device, boolean includePrograms) {
+        List<ProgramResponse> includedPrograms = null;
+        if (includePrograms) {
+            includedPrograms = device.getPrograms().stream()
+                    .map(this::toProgramDetailsResponse)
+                    .toList();
+        }
+
         User owner = device.getOwner();
-        return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), List.of(),
+        return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), includedPrograms,
                 device.getStatus(), device.getLastSeen(), device.getCreatedAt(),
                 device.getPublicIp(), device.getWakeOnLanPort(), device.getMacAddress());
     }
 
+    private ProgramResponse toProgramDetailsResponse(Program program) {
+        return new ProgramResponse(program.getId(), program.getName(), program.isPublic(), null);
+    }
+
     private int resolveWakeOnLanPort(Integer requestedPort) {
         return Optional.ofNullable(requestedPort).orElse(STANDARD_WOL_PORT);
+    }
+
+    @Transactional
+    public @NonNull DeviceResponse addProgramToDevice(long id, ProgramCreateRequest createRequest, long userId) {
+        Device device = requireOwnedDevice(id, userId);
+
+        Program program = new Program(createRequest.name(), createRequest.isPublic());
+        device.addProgram(program);
+        programRepository.save(program);
+
+        return toDeviceDetailsResponse(device, true);
     }
 }

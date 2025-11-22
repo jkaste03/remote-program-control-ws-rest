@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
+import com.github.jkaste03.dto.request.ProgramCreateRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.controller.hateoas.DeviceModelAssembler;
 import com.github.jkaste03.security.SecurityUtils;
@@ -33,6 +34,7 @@ import jakarta.validation.Valid;
 @RequestMapping("/remote-program-control/api/v1/devices")
 public class DeviceController {
 
+    private static final String ADMIN = "ADMIN";
     private final DeviceService deviceService;
     private final DeviceModelAssembler deviceModelAssembler;
 
@@ -46,7 +48,7 @@ public class DeviceController {
             @AuthenticationPrincipal UserPrincipal principal) {
 
         String userRoleName = SecurityUtils.extractRoleName(authentication);
-        boolean isAdmin = userRoleName.equals("ADMIN");
+        boolean isAdmin = userRoleName.equals(ADMIN);
 
         long userId = principal.id();
         List<DeviceResponse> devices = deviceService.getDevicesUserCanInteractWith(userId, isAdmin);
@@ -54,7 +56,7 @@ public class DeviceController {
     }
 
     @GetMapping("/{id}")
-    public EntityModel<DeviceResponse> getDeviceDetails(@PathVariable long id, Authentication authentication,
+    public EntityModel<DeviceResponse> getDeviceDetails(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
         long userId = principal.id();
 
@@ -92,5 +94,15 @@ public class DeviceController {
         long userId = principal.id();
         deviceService.deleteDevice(id, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/programs")
+    public EntityModel<DeviceResponse> addProgramToDevice(@PathVariable long id,
+            @Valid @RequestBody ProgramCreateRequest createRequest,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        long userId = principal.id();
+        DeviceResponse device = deviceService.addProgramToDevice(id, createRequest, userId);
+        return deviceModelAssembler.toModel(device);
     }
 }
