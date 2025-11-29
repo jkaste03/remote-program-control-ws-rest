@@ -35,12 +35,14 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
     private final ProgramRepository programRepository;
+    private final ProgramResponseMapper programResponseMapper;
 
     public DeviceService(DeviceRepository deviceRepository, UserRepository userRepository,
-            ProgramRepository programRepository) {
+            ProgramRepository programRepository, ProgramResponseMapper programResponseMapper) {
         this.deviceRepository = deviceRepository;
         this.userRepository = userRepository;
         this.programRepository = programRepository;
+        this.programResponseMapper = programResponseMapper;
     }
 
     /**
@@ -66,7 +68,7 @@ public class DeviceService {
             List<ProgramResponse> programResponses = d.getPrograms()
                     .stream()
                     .filter(p -> filterProgramForUser(p, userId, isOwner, isAdmin))
-                    .map(this::toProgramDetailsResponse)
+                    .map(programResponseMapper::toSummary)
                     .toList();
 
             result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programResponses,
@@ -155,7 +157,7 @@ public class DeviceService {
         List<ProgramResponse> includedPrograms = null;
         if (includePrograms) {
             includedPrograms = device.getPrograms().stream()
-                    .map(this::toProgramDetailsResponse)
+                    .map(programResponseMapper::toSummary)
                     .toList();
         }
 
@@ -163,10 +165,6 @@ public class DeviceService {
         return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), includedPrograms,
                 device.getStatus(), device.getLastSeen(), device.getCreatedAt(),
                 device.getPublicIp(), device.getWakeOnLanPort(), device.getMacAddress());
-    }
-
-    private ProgramResponse toProgramDetailsResponse(Program program) {
-        return new ProgramResponse(program.getId(), program.getName(), program.isPublic(), null);
     }
 
     private int resolveWakeOnLanPort(Integer requestedPort) {

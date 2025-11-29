@@ -23,8 +23,8 @@ public class ProgramModelAssembler
         long programId = program.id();
         return EntityModel.of(program,
                 programSelfLink(programId),
-                // programActionLink(programId, "update"),
-                // programActionLink(programId, "delete"),
+                programActionLink(programId, "update"),
+                programActionLink(programId, "delete"),
                 programsCollectionLink());
     }
 

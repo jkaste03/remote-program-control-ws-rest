@@ -1,17 +1,24 @@
 package com.github.jkaste03.controller;
 
 import org.springframework.hateoas.EntityModel;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.jkaste03.controller.hateoas.ProgramModelAssembler;
+import com.github.jkaste03.dto.request.ProgramCreateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.security.ProgramService;
 import com.github.jkaste03.security.UserPrincipal;
+
+import jakarta.validation.Valid;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
@@ -32,5 +39,23 @@ public class ProgramController {
         long userId = principal.id();
 
         return programModelAssembler.toModel(programService.getProgramDetails(id, userId));
+    }
+
+    @PutMapping("{id}")
+    public EntityModel<ProgramResponse> updateProgram(@PathVariable long id,
+            @Valid @RequestBody ProgramCreateRequest updateRequest,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        long userId = principal.id();
+
+        return programModelAssembler.toModel(programService.updateProgram(id, updateRequest, userId));
+    }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<Void> deleteProgram(@PathVariable long id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        long userId = principal.id();
+
+        programService.deleteProgram(id, userId);
+        return ResponseEntity.noContent().build();
     }
 }
