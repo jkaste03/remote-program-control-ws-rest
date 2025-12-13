@@ -15,6 +15,7 @@ import jakarta.persistence.ForeignKey;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -47,6 +48,7 @@ public class User {
 
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))
+	@NotNull
 	private Role role;
 
 	protected User() {

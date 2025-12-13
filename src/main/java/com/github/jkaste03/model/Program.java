@@ -19,10 +19,14 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "programs")
+@Table(name = "programs", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_program_device_filename", columnNames = { "device_id", "filename" }),
+        @UniqueConstraint(name = "uk_program_device_name", columnNames = { "device_id", "name" })
+})
 public class Program {
 
     @Id
@@ -30,7 +34,10 @@ public class Program {
     @SequenceGenerator(name = "program_seq", sequenceName = "program_seq", allocationSize = 50)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 255)
+    private String filename;
+
+    @Column(nullable = false, length = 255)
     private String name;
 
     @Column(name = "is_public", nullable = false)
@@ -51,13 +58,27 @@ public class Program {
     protected Program() {
         /* for JPA */ }
 
-    public Program(String name, boolean isPublic) {
-        this.name = name;
+    public Program(String filename) {
+        this.filename = filename;
+        this.name = filename;
+    }
+
+    public Program(String filename, boolean isPublic) {
+        this.filename = filename;
+        this.name = filename;
         this.isPublic = isPublic;
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getFilename() {
+        return filename;
+    }
+
+    public void setFilename(String name) {
+        this.filename = name;
     }
 
     public String getName() {
@@ -136,6 +157,6 @@ public class Program {
 
     @Override
     public String toString() {
-        return "Program [id=" + id + ", name=" + name + ", isPublic=" + isPublic + "]";
+        return "Program [id=" + id + ", filename=" + filename + ", name=" + name + ", isPublic=" + isPublic + "]";
     }
 }

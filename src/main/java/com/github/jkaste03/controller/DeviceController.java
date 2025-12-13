@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
-import com.github.jkaste03.dto.request.ProgramCreateRequest;
+import com.github.jkaste03.dto.request.ProgramUpdateRequest;
+import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.controller.hateoas.DeviceModelAssembler;
 import com.github.jkaste03.security.SecurityUtils;
@@ -28,10 +30,12 @@ import com.github.jkaste03.security.UserPrincipal;
 import com.github.jkaste03.service.DeviceService;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
 @RequestMapping("/remote-program-control/api/v1/devices")
+@Validated
 public class DeviceController {
 
     private static final String ADMIN = "ADMIN";
@@ -98,11 +102,20 @@ public class DeviceController {
 
     @PostMapping("/{id}/programs")
     public EntityModel<DeviceResponse> addProgramToDevice(@PathVariable long id,
-            @Valid @RequestBody ProgramCreateRequest createRequest,
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @Valid @RequestBody ProgramUpdateRequest createRequest, @AuthenticationPrincipal UserPrincipal principal) {
 
         long userId = principal.id();
         DeviceResponse device = deviceService.addProgramToDevice(id, createRequest, userId);
         return deviceModelAssembler.toModel(device);
+    }
+
+    @PutMapping("/{id}/programs/sync")
+    public ResponseEntity<Void> syncPrograms(@PathVariable long id,
+            @RequestBody @NotEmpty @Valid List<ProgramSyncRequest> programs,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        long userId = principal.id();
+        deviceService.syncPrograms(id, programs, userId);
+        return ResponseEntity.ok().build();
     }
 }

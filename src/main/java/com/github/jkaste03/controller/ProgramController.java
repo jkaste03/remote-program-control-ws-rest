@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.jkaste03.controller.hateoas.ProgramModelAssembler;
-import com.github.jkaste03.dto.request.ProgramCreateRequest;
+import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
-import com.github.jkaste03.security.ProgramService;
 import com.github.jkaste03.security.UserPrincipal;
+import com.github.jkaste03.service.ProgramService;
 
 import jakarta.validation.Valid;
 
@@ -43,7 +43,7 @@ public class ProgramController {
 
     @PutMapping("{id}")
     public EntityModel<ProgramResponse> updateProgram(@PathVariable long id,
-            @Valid @RequestBody ProgramCreateRequest updateRequest,
+            @Valid @RequestBody ProgramUpdateRequest updateRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
         long userId = principal.id();
 

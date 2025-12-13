@@ -2,14 +2,17 @@ package com.github.jkaste03.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
-import com.github.jkaste03.dto.request.ProgramCreateRequest;
+import com.github.jkaste03.dto.request.ProgramUpdateRequest;
+import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.exceptions.ConflictException;
@@ -36,13 +39,16 @@ public class DeviceService {
     private final UserRepository userRepository;
     private final ProgramRepository programRepository;
     private final ProgramResponseMapper programResponseMapper;
+    private final ProgramUniquenessValidator programUniquenessValidator;
 
     public DeviceService(DeviceRepository deviceRepository, UserRepository userRepository,
-            ProgramRepository programRepository, ProgramResponseMapper programResponseMapper) {
+            ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
+            ProgramUniquenessValidator programUniquenessValidator) {
         this.deviceRepository = deviceRepository;
         this.userRepository = userRepository;
         this.programRepository = programRepository;
         this.programResponseMapper = programResponseMapper;
+        this.programUniquenessValidator = programUniquenessValidator;
     }
 
     /**
@@ -63,7 +69,7 @@ public class DeviceService {
 
         List<DeviceResponse> result = new ArrayList<>(devices.size());
         for (Device d : devices) {
-            boolean isOwner = d.getOwner().getId().equals(userId);
+            boolean isOwner = Objects.equals(d.getOwner().getId(), userId);
 
             List<ProgramResponse> programResponses = d.getPrograms()
                     .stream()
@@ -82,7 +88,7 @@ public class DeviceService {
             return true;
         if (p.isPublic())
             return true;
-        return p.getAllowedUsers().stream().anyMatch(u -> u.getId().equals(userId));
+        return p.getAllowedUsers().stream().anyMatch(u -> Objects.equals(u.getId(), userId));
     }
 
     @Transactional
@@ -147,7 +153,7 @@ public class DeviceService {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
 
-        if (!device.getOwner().getId().equals(userId)) {
+        if (!Objects.equals(device.getOwner().getId(), userId)) {
             throw new ForbiddenException(PROBLEM_FORBIDDEN_DEVICE_ACCESS, deviceId);
         }
         return device;
@@ -172,13 +178,52 @@ public class DeviceService {
     }
 
     @Transactional
-    public @NonNull DeviceResponse addProgramToDevice(long id, ProgramCreateRequest createRequest, long userId) {
+    public @NonNull DeviceResponse addProgramToDevice(long id, ProgramUpdateRequest createRequest, long userId) {
         Device device = requireOwnedDevice(id, userId);
 
-        Program program = new Program(createRequest.name(), createRequest.isPublic());
+        programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, createRequest.filename(),
+                createRequest.name(), null);
+
+        Program program = new Program(createRequest.filename());
         device.addProgram(program);
         programRepository.save(program);
 
         return toDeviceDetailsResponse(device, true);
+    }
+
+    @Transactional
+    public void syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, long userId) {
+        Device device = requireOwnedDevice(deviceId, userId);
+        Set<Program> dbPrograms = device.getPrograms();
+
+        // 1. Gå gjennom det som finnes på PC-en
+        for (ProgramSyncRequest req : detectedPrograms) {
+            Optional<Program> existing = dbPrograms.stream()
+                    .filter(p -> p.getFilename().equals(req.filename()))
+                    .findFirst();
+
+            if (!existing.isPresent()) {
+                programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, req.filename());
+                // Programmet er nytt - legg til
+                Program newProgram = new Program(req.filename());
+                device.addProgram(newProgram); // Dette håndterer relasjonen i Device.java
+                programRepository.save(newProgram);
+            }
+        }
+
+        // 2. (Valgfritt) Slett programmer fra DB som IKKE lenger finnes på PC-en
+        // Dette sikrer at web-appen ikke viser "spøkelsesprogrammer"
+        List<Program> toRemove = dbPrograms.stream()
+                .filter(dbP -> detectedPrograms.stream()
+                        .noneMatch(req -> req.filename().equals(dbP.getFilename())))
+                .toList();
+
+        for (Program p : toRemove) {
+            if (p == null) {
+                continue;
+            }
+            device.removeProgram(p); // Fjerner fra listen i Device.java
+            programRepository.delete(p);
+        }
     }
 }
