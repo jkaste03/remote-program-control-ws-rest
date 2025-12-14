@@ -2,10 +2,13 @@ package com.github.jkaste03.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -195,35 +198,38 @@ public class DeviceService {
     @Transactional
     public void syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, UUID userId) {
         Device device = requireOwnedDevice(deviceId, userId);
-        Set<Program> dbPrograms = device.getPrograms();
 
-        // 1. Gå gjennom det som finnes på PC-en
+        // 1. Lag et Map av eksisterende programmer for O(1) oppslag
+        Map<String, Program> existingProgramsMap = device.getPrograms().stream()
+                .collect(Collectors.toMap(Program::getFilename, Function.identity()));
+
+        // 2. Gå gjennom det som finnes på PC-en (Legg til nye)
         for (ProgramSyncRequest req : detectedPrograms) {
-            Optional<Program> existing = dbPrograms.stream()
-                    .filter(p -> p.getFilename().equals(req.filename()))
-                    .findFirst();
-
-            if (!existing.isPresent()) {
+            if (!existingProgramsMap.containsKey(req.filename())) {
+                // Programmet finnes ikke fra før -> Legg til
                 programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, req.filename());
-                // Programmet er nytt - legg til
+
                 Program newProgram = new Program(req.filename());
-                device.addProgram(newProgram); // Dette håndterer relasjonen i Device.java
+                device.addProgram(newProgram);
                 programRepository.save(newProgram);
             }
         }
 
-        // 2. (Valgfritt) Slett programmer fra DB som IKKE lenger finnes på PC-en
-        // Dette sikrer at web-appen ikke viser "spøkelsesprogrammer"
-        List<Program> toRemove = dbPrograms.stream()
-                .filter(dbP -> detectedPrograms.stream()
-                        .noneMatch(req -> req.filename().equals(dbP.getFilename())))
+        // 3. Slett programmer som IKKE lenger finnes på PC-en
+        // Samle opp filnavnene fra requesten i et Set for rask sjekk
+        Set<String> detectedFilenames = detectedPrograms.stream()
+                .map(ProgramSyncRequest::filename)
+                .collect(Collectors.toSet());
+
+        List<Program> toRemove = device.getPrograms().stream()
+                .filter(p -> !detectedFilenames.contains(p.getFilename()))
                 .toList();
 
         for (Program p : toRemove) {
             if (p == null) {
                 continue;
             }
-            device.removeProgram(p); // Fjerner fra listen i Device.java
+            device.removeProgram(p);
             programRepository.delete(p);
         }
     }
