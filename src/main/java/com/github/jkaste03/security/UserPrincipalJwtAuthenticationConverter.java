@@ -1,48 +1,65 @@
 package com.github.jkaste03.security;
 
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-
-import com.github.jkaste03.model.User;
 
 import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private final JwtGrantedAuthoritiesConverter delegate = new JwtGrantedAuthoritiesConverter();
-    private final UserProvisioningService provisioningService;
-
-    public UserPrincipalJwtAuthenticationConverter(UserProvisioningService provisioningService) {
-        this.provisioningService = Objects.requireNonNull(provisioningService);
-    }
+    // Navnet på klienten i Keycloak som inneholder rollene (fra JSON-en din)
+    private static final String KEYCLOAK_CLIENT_ID = "dat152oblig2";
 
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
-        // Provisionér/oppdater bruker
-        String iss = jwt.getIssuer() != null ? jwt.getIssuer().toString() : null;
-        String sub = jwt.getSubject();
+        // 1. Hent ID og info direkte fra tokenet
+        String userId = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
         String username = jwt.getClaimAsString("preferred_username");
 
-        User user = provisioningService.ensureUserFromJwt(iss, sub, username, email);
+        // 2. Hent roller fra Keycloak sin spesifikke struktur
+        Collection<GrantedAuthority> authorities = extractKeycloakClientRoles(jwt, KEYCLOAK_CLIENT_ID);
 
-        var authorities = new LinkedHashSet<GrantedAuthority>();
-        var base = delegate.convert(jwt);
+        // 3. Lag UserPrincipal (lettvekts, ingen DB-kall)
+        var principal = new UserPrincipal(userId, email, username);
 
-        authorities.addAll(base);
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getName()));
+        return new UsernamePasswordAuthenticationToken(principal, jwt, authorities);
+    }
 
-        // Lettvekts principal
-        var principal = new UserPrincipal(user.getId(), user.getEmail());
+    @SuppressWarnings("unchecked")
+    private Collection<GrantedAuthority> extractKeycloakClientRoles(Jwt jwt, String clientId) {
+        // I Keycloak JSON ligger dette under "clientRoles", men i selve Access Tokenet
+        // (JWT) ligger det vanligvis under strukturen: resource_access -> klient-navn
+        // -> roles
+        Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
 
-        return new UsernamePasswordAuthenticationToken(principal, jwt, List.copyOf(authorities));
+        if (resourceAccess == null || resourceAccess.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Map<String, Object> clientAccess = (Map<String, Object>) resourceAccess.get(clientId);
+        if (clientAccess == null || clientAccess.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<String> roles = (List<String>) clientAccess.get("roles");
+        if (roles == null) {
+            return new ArrayList<>();
+        }
+
+        // Mapper om fra "ADMIN" til "ROLE_ADMIN" som Spring Security liker
+        return roles.stream()
+                .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName))
+                .collect(Collectors.toList());
     }
 }

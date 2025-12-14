@@ -44,13 +44,16 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
         Role roleUser = createRole("USER");
         Role roleAdmin = createRole("ADMIN");
 
-        // Opprett brukere som i Keycloak (så allowedUsers kan referere dem direkte)
-        User u1 = new User("user1@email.com", "user1", roleUser);
-        User u2 = new User("user2@email.com", "user2", roleAdmin);
+        // UUID-er fra dine test-tokens (application.properties)
+        String user1Id = "1ba8ff98-22e2-4607-8972-4e851cd0f6ca";
+        String adminId = "e0622f60-3606-40f9-8326-665b778ed7ea";
+        String user3Id = "8a0d7313-adfa-4751-aa05-d8ce219e5568";
+        String user4Id = "789ee020-e0e7-45de-aa08-ff4b3ddc398f";
 
-        User u3 = new User("user3@email.com", "user3", roleUser);
-
-        User u4 = new User("user4@email.com", "user4", roleUser);
+        User u1 = userRepo.save(new User(user1Id, "user1@email.com", "user1", roleUser));
+        User u2 = userRepo.save(new User(adminId, "user2@email.com", "user2", roleAdmin));
+        User u3 = userRepo.save(new User(user3Id, "user3@email.com", "user3", roleUser));
+        User u4 = userRepo.save(new User(user4Id, "user4@email.com", "user4", roleUser));
 
         userRepo.saveAll(List.of(u1, u2, u3, u4));
 

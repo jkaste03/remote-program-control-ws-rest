@@ -54,7 +54,7 @@ public class DeviceController {
         String userRoleName = SecurityUtils.extractRoleName(authentication);
         boolean isAdmin = userRoleName.equals(ADMIN);
 
-        long userId = principal.id();
+        String userId = principal.id();
         List<DeviceResponse> devices = deviceService.getDevicesUserCanInteractWith(userId, isAdmin);
         return deviceModelAssembler.toCollectionModel(devices);
     }
@@ -62,9 +62,7 @@ public class DeviceController {
     @GetMapping("/{id}")
     public EntityModel<DeviceResponse> getDeviceDetails(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        long userId = principal.id();
-
-        return deviceModelAssembler.toModel(deviceService.getDeviceDetails(id, userId));
+        return deviceModelAssembler.toModel(deviceService.getDeviceDetails(id, principal.id()));
     }
 
     @PostMapping
@@ -72,8 +70,7 @@ public class DeviceController {
             @Valid @RequestBody DeviceCreateRequest createRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        long userId = principal.id();
-        DeviceResponse device = deviceService.createDevice(createRequest, userId);
+        DeviceResponse device = deviceService.createDevice(createRequest, principal);
         EntityModel<DeviceResponse> model = deviceModelAssembler.toModel(device);
 
         URI location = model.getRequiredLink(IanaLinkRelations.SELF.value()).toUri();
@@ -86,8 +83,7 @@ public class DeviceController {
             @Valid @RequestBody DeviceCreateRequest updateRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        long userId = principal.id();
-        DeviceResponse device = deviceService.updateDevice(id, updateRequest, userId);
+        DeviceResponse device = deviceService.updateDevice(id, updateRequest, principal.id());
         return deviceModelAssembler.toModel(device);
     }
 
@@ -95,8 +91,7 @@ public class DeviceController {
     public ResponseEntity<Void> deleteDevice(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        long userId = principal.id();
-        deviceService.deleteDevice(id, userId);
+        deviceService.deleteDevice(id, principal.id());
         return ResponseEntity.noContent().build();
     }
 
@@ -104,8 +99,7 @@ public class DeviceController {
     public EntityModel<DeviceResponse> addProgramToDevice(@PathVariable long id,
             @Valid @RequestBody ProgramUpdateRequest createRequest, @AuthenticationPrincipal UserPrincipal principal) {
 
-        long userId = principal.id();
-        DeviceResponse device = deviceService.addProgramToDevice(id, createRequest, userId);
+        DeviceResponse device = deviceService.addProgramToDevice(id, createRequest, principal.id());
         return deviceModelAssembler.toModel(device);
     }
 
@@ -114,8 +108,7 @@ public class DeviceController {
             @RequestBody @NotEmpty @Valid List<ProgramSyncRequest> programs,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        long userId = principal.id();
-        deviceService.syncPrograms(id, programs, userId);
+        deviceService.syncPrograms(id, programs, principal.id());
         return ResponseEntity.ok().build();
     }
 }

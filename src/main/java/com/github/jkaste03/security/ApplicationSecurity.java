@@ -62,8 +62,7 @@ public class ApplicationSecurity {
 	}
 
 	@Bean
-	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter(
-			UserProvisioningService provisioningService) {
-		return new UserPrincipalJwtAuthenticationConverter(provisioningService);
+	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
+		return new UserPrincipalJwtAuthenticationConverter();
 	}
 }

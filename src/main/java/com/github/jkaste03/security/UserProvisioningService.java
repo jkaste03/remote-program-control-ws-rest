@@ -1,7 +1,5 @@
 package com.github.jkaste03.security;
 
-import java.util.Optional;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,41 +21,22 @@ public class UserProvisioningService {
 		this.roleRepo = roleRepo;
 	}
 
+	/**
+	 * Sjekker om bruker finnes basert på ID fra token (UUID).
+	 * Hvis ikke, opprettes brukeren "just-in-time".
+	 */
 	@Transactional
-	public User ensureUserFromJwt(String issuer,
-			String subject,
-			String username,
-			String email) {
-
-		// Primært: stabil Keycloak-identitet
-		User user = userRepo.findByAuthProviderAndAuthSubject(issuer, subject)
-				.orElseGet(() -> tryFindExistingByEmail(email, issuer, subject)
-						.orElseGet(() -> createNewUser(email, username, issuer, subject)));
-		// Oppdater email/username hvis de faktisk har endret seg
-		if (email != null && !email.equals(user.getEmail())) {
-			user.setEmail(email);
-		}
-		if (username != null && !username.equals(user.getUsername())) {
-			user.setUsername(username);
-		}
-		user.getRole().getName(); // Tving innlasting av rolle (for sikkerhetskontekst)
-		return user;
+	public User getOrCreateUser(UserPrincipal principal) {
+		return userRepo.findById(principal.id())
+				.orElseGet(() -> createUser(principal));
 	}
 
-	private Optional<User> tryFindExistingByEmail(String email, String issuer, String subject) {
-		if (email == null) {
-			return Optional.empty();
-		}
-		return userRepo.findByEmail(email).map(existing -> {
-			existing.linkIdentityIfMissing(issuer, subject);
-			return existing;
-		});
-	}
-
-	private User createNewUser(String email, String username, String issuer, String subject) {
+	private User createUser(UserPrincipal principal) {
 		Role role = roleRepo.findByName(DEFAULT_ROLE_NAME)
 				.orElseThrow(() -> new ResourceNotFoundException("problem.not-found.role", DEFAULT_ROLE_NAME));
-		User user = new User(email, username, issuer, subject, role);
+
+		// Oppretter User med ID (UUID) direkte fra tokenet
+		User user = new User(principal.id(), principal.email(), principal.username(), role);
 		return userRepo.save(user);
 	}
 }

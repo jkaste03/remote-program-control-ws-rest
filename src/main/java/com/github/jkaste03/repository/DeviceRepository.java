@@ -9,9 +9,9 @@ import com.github.jkaste03.model.Device;
 import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface DeviceRepository extends JpaRepository<Device, Long> {
-     boolean existsByOwnerIdAndName(Long ownerId, String name);
+     boolean existsByOwnerIdAndName(String ownerId, String name);
 
-     boolean existsByOwnerIdAndMacAddress(long userId, String macAddress);
+     boolean existsByOwnerIdAndMacAddress(String ownerId, String macAddress);
 
      @EntityGraph(attributePaths = { "programs", "programs.allowedUsers", "owner" })
      @Query("select d from Device d")
@@ -30,5 +30,5 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
                        where p.device = d and u.id = :userId
                   )
                """)
-     List<Device> findDevicesUserCanInteractWithPrefetched(Long userId);
+     List<Device> findDevicesUserCanInteractWithPrefetched(String userId);
 }

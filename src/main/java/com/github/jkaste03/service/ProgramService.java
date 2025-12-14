@@ -32,12 +32,12 @@ public class ProgramService {
     }
 
     @Transactional(readOnly = true)
-    public @NonNull ProgramResponse getProgramDetails(long id, long userId) {
+    public @NonNull ProgramResponse getProgramDetails(long id, String userId) {
         Program program = requireOwnedProgram(id, userId);
         return programResponseMapper.toDetailed(program);
     }
 
-    private @NonNull Program requireOwnedProgram(long programId, long userId) {
+    private @NonNull Program requireOwnedProgram(long programId, String userId) {
         Program program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_PROGRAM, programId));
 
@@ -48,7 +48,7 @@ public class ProgramService {
     }
 
     @Transactional
-    public @NonNull ProgramResponse updateProgram(long id, ProgramUpdateRequest updateRequest, long userId) {
+    public @NonNull ProgramResponse updateProgram(long id, ProgramUpdateRequest updateRequest, String userId) {
         Program program = requireOwnedProgram(id, userId);
 
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(program.getDevice(), updateRequest.filename(),
@@ -62,7 +62,7 @@ public class ProgramService {
     }
 
     @Transactional
-    public void deleteProgram(long id, long userId) {
+    public void deleteProgram(long id, String userId) {
         Program program = requireOwnedProgram(id, userId);
         program.getDevice().removeProgram(program);
         programRepository.delete(program);

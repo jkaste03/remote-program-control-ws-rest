@@ -36,8 +36,7 @@ public class ProgramController {
     @GetMapping("{id}")
     public EntityModel<ProgramResponse> getProgramDetails(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        long userId = principal.id();
-
+        String userId = principal.id();
         return programModelAssembler.toModel(programService.getProgramDetails(id, userId));
     }
 
@@ -45,7 +44,7 @@ public class ProgramController {
     public EntityModel<ProgramResponse> updateProgram(@PathVariable long id,
             @Valid @RequestBody ProgramUpdateRequest updateRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
-        long userId = principal.id();
+        String userId = principal.id();
 
         return programModelAssembler.toModel(programService.updateProgram(id, updateRequest, userId));
     }
@@ -53,7 +52,7 @@ public class ProgramController {
     @DeleteMapping("{id}")
     public ResponseEntity<Void> deleteProgram(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        long userId = principal.id();
+        String userId = principal.id();
 
         programService.deleteProgram(id, userId);
         return ResponseEntity.noContent().build();
