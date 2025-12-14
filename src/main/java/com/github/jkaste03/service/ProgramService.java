@@ -1,6 +1,7 @@
 package com.github.jkaste03.service;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -32,12 +33,12 @@ public class ProgramService {
     }
 
     @Transactional(readOnly = true)
-    public @NonNull ProgramResponse getProgramDetails(long id, String userId) {
+    public @NonNull ProgramResponse getProgramDetails(long id, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
         return programResponseMapper.toDetailed(program);
     }
 
-    private @NonNull Program requireOwnedProgram(long programId, String userId) {
+    private @NonNull Program requireOwnedProgram(long programId, UUID userId) {
         Program program = programRepository.findById(programId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_PROGRAM, programId));
 
@@ -48,7 +49,7 @@ public class ProgramService {
     }
 
     @Transactional
-    public @NonNull ProgramResponse updateProgram(long id, ProgramUpdateRequest updateRequest, String userId) {
+    public @NonNull ProgramResponse updateProgram(long id, ProgramUpdateRequest updateRequest, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
 
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(program.getDevice(), updateRequest.filename(),
@@ -62,7 +63,7 @@ public class ProgramService {
     }
 
     @Transactional
-    public void deleteProgram(long id, String userId) {
+    public void deleteProgram(long id, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
         program.getDevice().removeProgram(program);
         programRepository.delete(program);

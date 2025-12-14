@@ -1,5 +1,7 @@
 package com.github.jkaste03.controller;
 
+import java.util.UUID;
+
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,25 +38,22 @@ public class ProgramController {
     @GetMapping("{id}")
     public EntityModel<ProgramResponse> getProgramDetails(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        String userId = principal.id();
-        return programModelAssembler.toModel(programService.getProgramDetails(id, userId));
+        return programModelAssembler.toModel(programService.getProgramDetails(id, principal.id()));
     }
 
     @PutMapping("{id}")
     public EntityModel<ProgramResponse> updateProgram(@PathVariable long id,
             @Valid @RequestBody ProgramUpdateRequest updateRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
-        String userId = principal.id();
 
-        return programModelAssembler.toModel(programService.updateProgram(id, updateRequest, userId));
+        return programModelAssembler.toModel(programService.updateProgram(id, updateRequest, principal.id()));
     }
 
     @DeleteMapping("{id}")
     public ResponseEntity<Void> deleteProgram(@PathVariable long id,
             @AuthenticationPrincipal UserPrincipal principal) {
-        String userId = principal.id();
 
-        programService.deleteProgram(id, userId);
+        programService.deleteProgram(id, principal.id());
         return ResponseEntity.noContent().build();
     }
 }

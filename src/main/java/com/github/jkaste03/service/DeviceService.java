@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,7 @@ public class DeviceService {
      * - Ikke-eierskap: bare programmer som er public ELLER hvor brukeren er allowed
      */
     @Transactional(readOnly = true)
-    public @NonNull List<DeviceResponse> getDevicesUserCanInteractWith(String userId, boolean isAdmin) {
+    public @NonNull List<DeviceResponse> getDevicesUserCanInteractWith(UUID userId, boolean isAdmin) {
         final List<Device> devices;
         if (isAdmin) {
             devices = deviceRepository.findAllWithPrograms();
@@ -83,7 +84,7 @@ public class DeviceService {
         return result;
     }
 
-    private boolean filterProgramForUser(Program p, String userId, boolean isOwner, boolean isAdmin) {
+    private boolean filterProgramForUser(Program p, UUID userId, boolean isOwner, boolean isAdmin) {
         if (isAdmin || isOwner)
             return true;
         if (p.isPublic())
@@ -97,7 +98,7 @@ public class DeviceService {
         String macAddress = createRequest.macAddress();
         String publicIp = createRequest.publicIp();
         User owner = userProvisioningService.getOrCreateUser(principal);
-        String userId = principal.id();
+        UUID userId = principal.id();
 
         ensureUniqueIdentifiers(userId, deviceName, macAddress, null);
 
@@ -109,13 +110,13 @@ public class DeviceService {
     }
 
     @Transactional(readOnly = true)
-    public @NonNull DeviceResponse getDeviceDetails(long id, String userId) {
+    public @NonNull DeviceResponse getDeviceDetails(long id, UUID userId) {
         Device device = requireOwnedDevice(id, userId);
         return toDeviceDetailsResponse(device, false);
     }
 
     @Transactional
-    public @NonNull DeviceResponse updateDevice(long id, DeviceCreateRequest updateRequest, String userId) {
+    public @NonNull DeviceResponse updateDevice(long id, DeviceCreateRequest updateRequest, UUID userId) {
         Device device = requireOwnedDevice(id, userId);
 
         String newName = updateRequest.name();
@@ -132,12 +133,12 @@ public class DeviceService {
     }
 
     @Transactional
-    public void deleteDevice(long id, String userId) {
+    public void deleteDevice(long id, UUID userId) {
         Device device = requireOwnedDevice(id, userId);
         deviceRepository.delete(device);
     }
 
-    private void ensureUniqueIdentifiers(String ownerId, String name, String macAddress, Device currentDevice) {
+    private void ensureUniqueIdentifiers(UUID ownerId, String name, String macAddress, Device currentDevice) {
         boolean checkName = currentDevice == null || !currentDevice.getName().equals(name);
         if (checkName && deviceRepository.existsByOwnerIdAndName(ownerId, name)) {
             throw new ConflictException(PROBLEM_OWNER_NAME_CONFLICT, name);
@@ -149,7 +150,7 @@ public class DeviceService {
         }
     }
 
-    private @NonNull Device requireOwnedDevice(long deviceId, String userId) {
+    private @NonNull Device requireOwnedDevice(long deviceId, UUID userId) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
 
@@ -178,7 +179,7 @@ public class DeviceService {
     }
 
     @Transactional
-    public @NonNull DeviceResponse addProgramToDevice(long id, ProgramUpdateRequest createRequest, String userId) {
+    public @NonNull DeviceResponse addProgramToDevice(long id, ProgramUpdateRequest createRequest, UUID userId) {
         Device device = requireOwnedDevice(id, userId);
 
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, createRequest.filename(),
@@ -192,7 +193,7 @@ public class DeviceService {
     }
 
     @Transactional
-    public void syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, String userId) {
+    public void syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, UUID userId) {
         Device device = requireOwnedDevice(deviceId, userId);
         Set<Program> dbPrograms = device.getPrograms();
 

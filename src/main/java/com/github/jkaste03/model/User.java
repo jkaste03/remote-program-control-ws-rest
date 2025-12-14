@@ -1,6 +1,7 @@
 package com.github.jkaste03.model;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import org.hibernate.Hibernate;
 
@@ -20,7 +21,7 @@ public class User {
 
 	@Id
 	@Column(name = "id", length = 36) // UUID har 36 tegn
-	private String id;
+	private UUID id;
 
 	@Column(nullable = false, length = 120, unique = true)
 	private String email;
@@ -40,14 +41,14 @@ public class User {
 	protected User() {
 		/* for JPA */ }
 
-	public User(String id, String email, String username, Role role) {
+	public User(UUID id, String email, String username, Role role) {
 		this.id = id;
 		this.email = email;
 		this.username = username;
 		this.role = role;
 	}
 
-	public String getId() {
+	public UUID getId() {
 		return id;
 	}
 

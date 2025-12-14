@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.core.convert.converter.Converter;
@@ -26,8 +27,8 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
 
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
-        // 1. Hent ID og info direkte fra tokenet
-        String userId = jwt.getSubject();
+        String sub = jwt.getSubject();
+        UUID userId = UUID.fromString(sub); // Konverterer her!
         String email = jwt.getClaimAsString("email");
         String username = jwt.getClaimAsString("preferred_username");
 

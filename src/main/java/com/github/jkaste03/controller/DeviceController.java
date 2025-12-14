@@ -54,8 +54,7 @@ public class DeviceController {
         String userRoleName = SecurityUtils.extractRoleName(authentication);
         boolean isAdmin = userRoleName.equals(ADMIN);
 
-        String userId = principal.id();
-        List<DeviceResponse> devices = deviceService.getDevicesUserCanInteractWith(userId, isAdmin);
+        List<DeviceResponse> devices = deviceService.getDevicesUserCanInteractWith(principal.id(), isAdmin);
         return deviceModelAssembler.toCollectionModel(devices);
     }
 

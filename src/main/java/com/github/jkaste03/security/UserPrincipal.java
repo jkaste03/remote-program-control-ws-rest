@@ -1,9 +1,10 @@
 package com.github.jkaste03.security;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 public record UserPrincipal(
-		String id,
+		UUID id,
 		String email,
 		String username) implements Serializable {
 	@Override
