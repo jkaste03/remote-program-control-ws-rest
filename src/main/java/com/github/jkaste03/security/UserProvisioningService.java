@@ -41,7 +41,7 @@ public class UserProvisioningService {
 	 * Dette håndterer både "Race Conditions" og sikrer at brukeren blir
 	 * lagret selv om operasjonen som kalte oss (f.eks. lagre Device) feiler senere.
 	 */
-	@Transactional
+	@Transactional(propagation = Propagation.REQUIRES_NEW) // Sørger for at bruker lagres hvis device ikke lagres
 	public User getOrCreateUser(UserPrincipal principal) {
 		// 1. Prøv å finn bruker raskt
 		return userRepo.findById(principal.id())
