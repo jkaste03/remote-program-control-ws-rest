@@ -17,6 +17,7 @@ import com.github.jkaste03.model.User;
 import com.github.jkaste03.repository.DeviceRepository;
 import com.github.jkaste03.repository.RoleRepository;
 import com.github.jkaste03.repository.UserRepository;
+import com.github.jkaste03.security.AppRoles;
 
 @Component
 public class ConfigCommandLineRunner implements CommandLineRunner {
@@ -42,8 +43,8 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
         log.info("Starter seeding av grunndata ...");
 
         // i ConfigCommandLineRunner.run(...)
-        Role roleUser = createRole("USER");
-        Role roleAdmin = createRole("ADMIN");
+        Role roleUser = createRole(AppRoles.USER);
+        Role roleAdmin = createRole(AppRoles.ADMIN);
 
         // UUID-er fra dine test-tokens (application.properties)
         UUID user1Id = UUID.fromString("1ba8ff98-22e2-4607-8972-4e851cd0f6ca");

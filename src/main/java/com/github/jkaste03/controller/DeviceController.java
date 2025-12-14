@@ -25,6 +25,7 @@ import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.controller.hateoas.DeviceModelAssembler;
+import com.github.jkaste03.security.AppRoles;
 import com.github.jkaste03.security.UserPrincipal;
 import com.github.jkaste03.service.DeviceService;
 
@@ -37,7 +38,6 @@ import jakarta.validation.constraints.NotEmpty;
 @Validated
 public class DeviceController {
 
-    private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private final DeviceService deviceService;
     private final DeviceModelAssembler deviceModelAssembler;
 
@@ -58,7 +58,7 @@ public class DeviceController {
 
     private boolean isAdmin(Authentication auth) {
         return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals(ROLE_ADMIN));
+                .anyMatch(a -> a.getAuthority().equals(AppRoles.ROLE_ADMIN));
     }
 
     @GetMapping("/{id}")

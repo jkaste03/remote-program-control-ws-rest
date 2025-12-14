@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -74,7 +73,7 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
 
         // Mapper om fra "ADMIN" til "ROLE_ADMIN" som Spring Security liker
         return roles.stream()
-                .map(roleName -> new SimpleGrantedAuthority("ROLE_" + roleName))
+                .map(roleName -> new SimpleGrantedAuthority(AppRoles.ROLE_PREFIX + roleName))
                 .collect(Collectors.toList());
     }
 }

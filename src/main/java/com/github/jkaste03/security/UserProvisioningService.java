@@ -18,7 +18,7 @@ public class UserProvisioningService {
 
 	private final UserRepository userRepo;
 	private final RoleRepository roleRepo;
-	private static final String DEFAULT_ROLE_NAME = "USER";
+	private static final String DEFAULT_ROLE_NAME = AppRoles.USER;
 
 	/*
 	 * Vi trenger en referanse til "oss selv" (proxyen) for å kunne kalle
