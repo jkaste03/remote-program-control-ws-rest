@@ -21,6 +21,10 @@ import org.springframework.lang.NonNull;
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private static final String INVALID_TOKEN_MESSAGE_KEY = "problem.auth.invalid-token";
+    private static final String MISSING_CLAIM_MESSAGE_KEY = "problem.auth.missing-claims";
+
+    private static final String EMAIL_CLAIM = "email";
+    private static final String USERNAME_CLAIM = "preferred_username";
 
     // Navnet på klienten i Keycloak som inneholder rollene (fra JSON-en din)
     private final String keycloakClientId;
@@ -38,8 +42,16 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         } catch (IllegalArgumentException e) {
             throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY, e);
         }
-        String email = jwt.getClaimAsString("email");
-        String username = jwt.getClaimAsString("preferred_username");
+
+        String email = jwt.getClaimAsString(EMAIL_CLAIM);
+        if (email == null) {
+            throw new InvalidTokenException(MISSING_CLAIM_MESSAGE_KEY, EMAIL_CLAIM);
+        }
+
+        String username = jwt.getClaimAsString(USERNAME_CLAIM);
+        if (username == null) {
+            throw new InvalidTokenException(MISSING_CLAIM_MESSAGE_KEY, USERNAME_CLAIM);
+        }
 
         // 2. Hent roller fra Keycloak sin spesifikke struktur
         Collection<GrantedAuthority> authorities = extractKeycloakClientRoles(jwt, keycloakClientId);
