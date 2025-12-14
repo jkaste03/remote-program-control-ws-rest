@@ -9,14 +9,19 @@ import java.util.stream.Collectors;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import com.github.jkaste03.exceptions.InvalidTokenException;
+
 import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
+
+    private static final String INVALID_TOKEN_MESSAGE_KEY = "problem.auth.invalid-token";
 
     // Navnet på klienten i Keycloak som inneholder rollene (fra JSON-en din)
     private final String keycloakClientId;
@@ -28,7 +33,12 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         String sub = jwt.getSubject();
-        UUID userId = UUID.fromString(sub); // Konverterer her!
+        UUID userId;
+        try {
+            userId = UUID.fromString(sub);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY, e);
+        }
         String email = jwt.getClaimAsString("email");
         String username = jwt.getClaimAsString("preferred_username");
 
