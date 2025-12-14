@@ -1,5 +1,6 @@
 package com.github.jkaste03.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,10 @@ import jakarta.servlet.DispatcherType;
 @Configuration
 @EnableMethodSecurity
 public class ApplicationSecurity {
+
+	// Inject verdien fra application.properties
+	@Value("${app.keycloak.client-id}")
+	private String keycloakClientId;
 
 	/**
 	 * 1) Egen kjede for H2-konsollen – ingen JWT her.
@@ -63,6 +68,6 @@ public class ApplicationSecurity {
 
 	@Bean
 	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
-		return new UserPrincipalJwtAuthenticationConverter();
+		return new UserPrincipalJwtAuthenticationConverter(keycloakClientId);
 	}
 }

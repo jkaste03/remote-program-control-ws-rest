@@ -18,7 +18,11 @@ import org.springframework.lang.NonNull;
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     // Navnet på klienten i Keycloak som inneholder rollene (fra JSON-en din)
-    private static final String KEYCLOAK_CLIENT_ID = "dat152oblig2";
+    private final String keycloakClientId;
+
+    public UserPrincipalJwtAuthenticationConverter(String keycloakClientId) {
+        this.keycloakClientId = keycloakClientId;
+    }
 
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
@@ -28,7 +32,7 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         String username = jwt.getClaimAsString("preferred_username");
 
         // 2. Hent roller fra Keycloak sin spesifikke struktur
-        Collection<GrantedAuthority> authorities = extractKeycloakClientRoles(jwt, KEYCLOAK_CLIENT_ID);
+        Collection<GrantedAuthority> authorities = extractKeycloakClientRoles(jwt, keycloakClientId);
 
         // 3. Lag UserPrincipal (lettvekts, ingen DB-kall)
         var principal = new UserPrincipal(userId, email, username);
