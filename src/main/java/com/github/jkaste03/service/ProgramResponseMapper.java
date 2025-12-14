@@ -21,7 +21,7 @@ public class ProgramResponseMapper {
     }
 
     private @NonNull ProgramResponse toResponse(Program program, boolean includeAllowedUsers) {
-        List<String> allowedUsers = null;
+        List<String> allowedUsers = List.of();
         if (includeAllowedUsers) {
             allowedUsers = program.getAllowedUsers()
                     .stream()
@@ -30,6 +30,6 @@ public class ProgramResponseMapper {
         }
 
         return new ProgramResponse(program.getId(), program.getName(), program.getFilename(), program.isPublic(),
-            allowedUsers);
+                allowedUsers);
     }
 }
