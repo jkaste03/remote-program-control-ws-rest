@@ -32,8 +32,8 @@ public class DeviceModelAssembler
     @NonNull
     public CollectionModel<EntityModel<DeviceResponse>> toCollectionModel(
             @NonNull Iterable<? extends DeviceResponse> devices) {
-        CollectionModel<EntityModel<DeviceResponse>> collection = RepresentationModelAssembler.super
-                .toCollectionModel(devices);
+        CollectionModel<EntityModel<DeviceResponse>> collection = RepresentationModelAssembler.super.toCollectionModel(
+                devices);
         collection.add(devicesCollectionLink());
         collection.add(linkTo(DeviceController.class).withRel("create"));
         return collection;

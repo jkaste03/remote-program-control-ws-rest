@@ -7,6 +7,7 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.IanaLinkRelations;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -70,7 +71,7 @@ public class DeviceController {
     @PostMapping
     public ResponseEntity<EntityModel<DeviceResponse>> createDevice(
             @Valid @RequestBody DeviceCreateRequest createRequest,
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @NonNull @AuthenticationPrincipal UserPrincipal principal) {
 
         DeviceResponse device = deviceService.createDevice(createRequest, principal);
         EntityModel<DeviceResponse> model = deviceModelAssembler.toModel(device);

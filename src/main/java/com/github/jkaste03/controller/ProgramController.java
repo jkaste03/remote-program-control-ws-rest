@@ -1,7 +1,5 @@
 package com.github.jkaste03.controller;
 
-import java.util.UUID;
-
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
