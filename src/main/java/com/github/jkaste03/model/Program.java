@@ -32,8 +32,10 @@ import jakarta.validation.constraints.NotNull;
 public class Program {
 
     public enum Status {
+        TRYING_TO_START,
         STARTED,
-        STOPPED
+        STOPPED,
+        TRYING_TO_STOP
     }
 
     @Id

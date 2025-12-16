@@ -35,8 +35,8 @@ public class DeviceService {
     private static final int STANDARD_WOL_PORT = 9;
     private static final String PROBLEM_NOT_FOUND_DEVICE = "problem.not-found.device";
     private static final String PROBLEM_FORBIDDEN_DEVICE_ACCESS = "problem.forbidden.device-access";
-    private static final String PROBLEM_OWNER_NAME_CONFLICT = "device.owner-name-conflict";
-    private static final String PROBLEM_OWNER_MAC_ADDRESS_CONFLICT = "device.owner-mac-address-conflict";
+    private static final String PROBLEM_OWNER_NAME_CONFLICT = "device.conflict.owner-name";
+    private static final String PROBLEM_OWNER_MAC_ADDRESS_CONFLICT = "device.conflict.owner-mac-address";
 
     private final DeviceRepository deviceRepository;
     private final ProgramRepository programRepository;

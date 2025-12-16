@@ -12,8 +12,8 @@ import com.github.jkaste03.model.Program;
 @Component
 public class ProgramUniquenessValidator {
 
-    private static final String PROBLEM_PROGRAM_FILENAME_CONFLICT = "program.device-filename-conflict";
-    private static final String PROBLEM_PROGRAM_NAME_CONFLICT = "program.device-name-conflict";
+    private static final String PROBLEM_PROGRAM_FILENAME_CONFLICT = "program.conflict.device-filename";
+    private static final String PROBLEM_PROGRAM_NAME_CONFLICT = "program.conflict.device-name";
 
     public void requireUniqueNameAndFilenameForDevice(Device device, String desiredFilename, String desiredName,
             Program currentProgram) {

@@ -1,5 +1,6 @@
 package com.github.jkaste03.service;
 
+import java.util.EnumSet;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -9,16 +10,23 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
+import com.github.jkaste03.exceptions.ConflictException;
 import com.github.jkaste03.exceptions.ForbiddenException;
 import com.github.jkaste03.exceptions.ResourceNotFoundException;
 import com.github.jkaste03.model.Program;
+import com.github.jkaste03.model.Program.Status;
 import com.github.jkaste03.repository.ProgramRepository;
 
 @Service
 public class ProgramService {
 
+    private static final String COMMAND_START_PROGRAM = "START_PROGRAM";
+    private static final String COMMAND_STOP_PROGRAM = "STOP_PROGRAM";
+
     private static final String PROBLEM_NOT_FOUND_PROGRAM = "problem.not-found.program";
     private static final String PROBLEM_FORBIDDEN_PROGRAM_ACCESS = "problem.forbidden.program-access";
+    private static final String PROBLEM_CONFLICT_START_IN_PROGRESS_OR_STARTED = "program.conflict.start-in-progress-or-started";
+    private static final String PROBLEM_CONFLICT_STOP_IN_PROGRESS_OR_STOPPED = "program.conflict.stop-in-progress-or-stopped";
 
     private final ProgramRepository programRepository;
     private final ProgramResponseMapper programResponseMapper;
@@ -79,22 +87,30 @@ public class ProgramService {
     public void startProgram(long id, UUID userId, boolean isAdmin) {
         Program program = requireAccessibleProgram(id, userId, isAdmin);
 
+        // SJEKK: Er det allerede startet?
+        if (EnumSet.of(Status.TRYING_TO_START, Status.STARTED).contains(program.getStatus())) {
+            throw new ConflictException(PROBLEM_CONFLICT_START_IN_PROGRESS_OR_STARTED, program.getName());
+        }
+
+        program.setStatus(Status.TRYING_TO_START);
+        programRepository.save(program);
         // Send beskjed til maskinen via SSE. Data-objektet her kan være hva som helst,
         // f.eks. bare filnavnet eller en liten JSON
-        sseService.sendEventToDevice(program.getDevice().getId(), "START_PROGRAM", program.getFilename());
-
-        program.setStatus(Program.Status.STARTED);
-        programRepository.save(program);
+        sseService.sendEventToDevice(program.getDevice().getId(), COMMAND_START_PROGRAM, program.getFilename());
     }
 
     @Transactional
     public void stopProgram(long id, UUID userId, boolean isAdmin) {
         Program program = requireAccessibleProgram(id, userId, isAdmin);
 
-        sseService.sendEventToDevice(program.getDevice().getId(), "STOP_PROGRAM", program.getFilename());
-
-        program.setStatus(Program.Status.STOPPED);
+        // SJEKK: Er det allerede stoppet?
+        if (EnumSet.of(Status.TRYING_TO_STOP, Status.STOPPED).contains(program.getStatus())) {
+            throw new ConflictException(PROBLEM_CONFLICT_STOP_IN_PROGRESS_OR_STOPPED, program.getName());
+        }
+        program.setStatus(Status.TRYING_TO_STOP);
         programRepository.save(program);
+
+        sseService.sendEventToDevice(program.getDevice().getId(), COMMAND_STOP_PROGRAM, program.getFilename());
     }
 
     private Program requireAccessibleProgram(long programId, UUID userId, boolean isAdmin) {
