@@ -20,15 +20,17 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.github.jkaste03.controller.assembler.DeviceModelAssembler;
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
 import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
-import com.github.jkaste03.controller.hateoas.DeviceModelAssembler;
-import com.github.jkaste03.security.AppRoles;
 import com.github.jkaste03.security.UserPrincipal;
+import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.service.DeviceService;
+import com.github.jkaste03.service.SseService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -41,25 +43,23 @@ public class DeviceController {
 
     private final DeviceService deviceService;
     private final DeviceModelAssembler deviceModelAssembler;
+    private final SseService sseService;
 
-    public DeviceController(DeviceService deviceService, DeviceModelAssembler deviceModelAssembler) {
+    public DeviceController(DeviceService deviceService, DeviceModelAssembler deviceModelAssembler,
+            SseService sseService) {
         this.deviceService = deviceService;
         this.deviceModelAssembler = deviceModelAssembler;
+        this.sseService = sseService;
     }
 
     @GetMapping
     public CollectionModel<EntityModel<DeviceResponse>> getDevicesUserCanInteractWith(Authentication authentication,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        boolean isAdmin = isAdmin(authentication);
+        boolean isAdmin = SecurityUtils.isAdmin(authentication);
 
         List<DeviceResponse> devices = deviceService.getDevicesUserCanInteractWith(principal.id(), isAdmin);
         return deviceModelAssembler.toCollectionModel(devices);
-    }
-
-    private boolean isAdmin(Authentication auth) {
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals(AppRoles.ROLE_ADMIN));
     }
 
     @GetMapping("/{id}")
@@ -113,5 +113,16 @@ public class DeviceController {
 
         deviceService.syncPrograms(id, programs, principal.id());
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/events")
+    public SseEmitter subscribeToEvents(@PathVariable long id, @AuthenticationPrincipal UserPrincipal principal) {
+        deviceService.requireOwnedDevice(id, principal.id());
+
+        // Timeout på 0 betyr "uendelig" (eller så lenge serveren tillater)
+        SseEmitter emitter = new SseEmitter(0L);
+        sseService.addEmitter(id, emitter);
+
+        return emitter;
     }
 }

@@ -7,6 +7,8 @@ import org.hibernate.Hibernate;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -29,6 +31,11 @@ import jakarta.validation.constraints.NotNull;
 })
 public class Program {
 
+    public enum Status {
+        STARTED,
+        STOPPED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "program_seq")
     @SequenceGenerator(name = "program_seq", sequenceName = "program_seq", allocationSize = 50)
@@ -42,6 +49,10 @@ public class Program {
 
     @Column(name = "is_public", nullable = false)
     private boolean isPublic = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Status status = Status.STOPPED;
 
     @ManyToMany
     @JoinTable(name = "program_allowed_users", joinColumns = @JoinColumn(name = "program_id", foreignKey = @ForeignKey(name = "fk_prog_allowed_prog")), inverseJoinColumns = @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_prog_allowed_user")), indexes = {
@@ -95,6 +106,14 @@ public class Program {
 
     public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     public Device getDevice() {

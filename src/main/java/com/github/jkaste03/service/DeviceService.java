@@ -1,6 +1,5 @@
 package com.github.jkaste03.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,16 +42,18 @@ public class DeviceService {
     private final ProgramRepository programRepository;
     private final ProgramResponseMapper programResponseMapper;
     private final ProgramUniquenessValidator programUniquenessValidator;
+    private final ProgramAccessService programAccessService;
     private final UserProvisioningService userProvisioningService;
 
     public DeviceService(DeviceRepository deviceRepository, UserProvisioningService userProvisioningService,
             ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
-            ProgramUniquenessValidator programUniquenessValidator) {
+            ProgramUniquenessValidator programUniquenessValidator, ProgramAccessService programAccessService) {
         this.deviceRepository = deviceRepository;
         this.userProvisioningService = userProvisioningService;
         this.programRepository = programRepository;
         this.programResponseMapper = programResponseMapper;
         this.programUniquenessValidator = programUniquenessValidator;
+        this.programAccessService = programAccessService;
     }
 
     /**
@@ -64,35 +65,23 @@ public class DeviceService {
      */
     @Transactional(readOnly = true)
     public @NonNull List<DeviceResponse> getDevicesUserCanInteractWith(UUID userId, boolean isAdmin) {
-        final List<Device> devices;
-        if (isAdmin) {
-            devices = deviceRepository.findAllWithPrograms();
-        } else {
-            devices = deviceRepository.findDevicesUserCanInteractWithPrefetched(userId);
-        }
+        List<Device> devices = isAdmin
+                ? deviceRepository.findAllWithPrograms()
+                : deviceRepository.findDevicesUserCanInteractWithPrefetched(userId);
 
-        List<DeviceResponse> result = new ArrayList<>(devices.size());
-        for (Device d : devices) {
-            boolean isOwner = Objects.equals(d.getOwner().getId(), userId);
+        List<DeviceResponse> deviceResponses = devices.stream()
+                .map(device -> {
+                    List<ProgramResponse> programResponses = device.getPrograms().stream()
+                            .filter(program -> isAdmin || programAccessService.hasAccess(program, userId))
+                            .map(programResponseMapper::toSummary)
+                            .toList();
 
-            List<ProgramResponse> programResponses = d.getPrograms()
-                    .stream()
-                    .filter(p -> filterProgramForUser(p, userId, isOwner, isAdmin))
-                    .map(programResponseMapper::toSummary)
-                    .toList();
+                    return new DeviceResponse(device.getId(), device.getName(), device.getOwner().getUsername(),
+                            programResponses, device.getStatus(), device.getLastSeen(), device.getCreatedAt());
+                })
+                .toList();
 
-            result.add(new DeviceResponse(d.getId(), d.getName(), d.getOwner().getUsername(), programResponses,
-                    d.getStatus(), d.getLastSeen(), d.getCreatedAt()));
-        }
-        return result;
-    }
-
-    private boolean filterProgramForUser(Program p, UUID userId, boolean isOwner, boolean isAdmin) {
-        if (isAdmin || isOwner)
-            return true;
-        if (p.isPublic())
-            return true;
-        return p.getAllowedUsers().stream().anyMatch(u -> Objects.equals(u.getId(), userId));
+        return Objects.requireNonNull(deviceResponses);
     }
 
     @Transactional
@@ -153,7 +142,7 @@ public class DeviceService {
         }
     }
 
-    private @NonNull Device requireOwnedDevice(long deviceId, UUID userId) {
+    public @NonNull Device requireOwnedDevice(long deviceId, UUID userId) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
 

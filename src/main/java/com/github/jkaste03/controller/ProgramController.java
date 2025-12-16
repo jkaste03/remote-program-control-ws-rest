@@ -7,15 +7,18 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.github.jkaste03.controller.hateoas.ProgramModelAssembler;
+import com.github.jkaste03.controller.assembler.ProgramModelAssembler;
 import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
+import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.security.UserPrincipal;
+import org.springframework.security.core.Authentication;
 import com.github.jkaste03.service.ProgramService;
 
 import jakarta.validation.Valid;
@@ -52,6 +55,22 @@ public class ProgramController {
             @AuthenticationPrincipal UserPrincipal principal) {
 
         programService.deleteProgram(id, principal.id());
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build(); // HATEOAS?
+    }
+
+    @PostMapping("{id}/start")
+    public ResponseEntity<Void> startProgram(@PathVariable long id, Authentication authentication,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        boolean isAdmin = SecurityUtils.isAdmin(authentication);
+        programService.startProgram(id, principal.id(), isAdmin);
+        return ResponseEntity.ok().build(); // HATEOAS?
+    }
+
+    @PostMapping("{id}/stop")
+    public ResponseEntity<Void> stopProgram(@PathVariable long id, Authentication authentication,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        boolean isAdmin = SecurityUtils.isAdmin(authentication);
+        programService.stopProgram(id, principal.id(), isAdmin);
+        return ResponseEntity.ok().build(); // HATEOAS?
     }
 }

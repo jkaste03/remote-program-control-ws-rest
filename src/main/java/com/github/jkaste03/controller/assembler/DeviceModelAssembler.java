@@ -1,4 +1,4 @@
-package com.github.jkaste03.controller.hateoas;
+package com.github.jkaste03.controller.assembler;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 

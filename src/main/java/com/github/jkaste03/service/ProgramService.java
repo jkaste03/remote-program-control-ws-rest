@@ -23,29 +23,25 @@ public class ProgramService {
     private final ProgramRepository programRepository;
     private final ProgramResponseMapper programResponseMapper;
     private final ProgramUniquenessValidator programUniquenessValidator;
+    private final ProgramAccessService programAccessService;
+    private final SseService sseService;
 
     public ProgramService(ProgramRepository programRepository,
             ProgramResponseMapper programResponseMapper,
-            ProgramUniquenessValidator programUniquenessValidator) {
+            ProgramUniquenessValidator programUniquenessValidator,
+            ProgramAccessService programAccessService,
+            SseService sseService) {
         this.programRepository = programRepository;
         this.programResponseMapper = programResponseMapper;
         this.programUniquenessValidator = programUniquenessValidator;
+        this.programAccessService = programAccessService;
+        this.sseService = sseService;
     }
 
     @Transactional(readOnly = true)
     public @NonNull ProgramResponse getProgramDetails(long id, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
         return programResponseMapper.toDetailed(program);
-    }
-
-    private @NonNull Program requireOwnedProgram(long programId, UUID userId) {
-        Program program = programRepository.findById(programId)
-                .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_PROGRAM, programId));
-
-        if (!Objects.equals(program.getDevice().getOwner().getId(), userId)) {
-            throw new ForbiddenException(PROBLEM_FORBIDDEN_PROGRAM_ACCESS, programId);
-        }
-        return program;
     }
 
     @Transactional
@@ -69,4 +65,45 @@ public class ProgramService {
         programRepository.delete(program);
     }
 
+    private @NonNull Program requireOwnedProgram(long programId, UUID userId) {
+        Program program = programRepository.findById(programId)
+                .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_PROGRAM, programId));
+
+        if (!Objects.equals(program.getDevice().getOwner().getId(), userId)) {
+            throw new ForbiddenException(PROBLEM_FORBIDDEN_PROGRAM_ACCESS, programId);
+        }
+        return program;
+    }
+
+    @Transactional
+    public void startProgram(long id, UUID userId, boolean isAdmin) {
+        Program program = requireAccessibleProgram(id, userId, isAdmin);
+
+        // Send beskjed til maskinen via SSE. Data-objektet her kan være hva som helst,
+        // f.eks. bare filnavnet eller en liten JSON
+        sseService.sendEventToDevice(program.getDevice().getId(), "START_PROGRAM", program.getFilename());
+
+        program.setStatus(Program.Status.STARTED);
+        programRepository.save(program);
+    }
+
+    @Transactional
+    public void stopProgram(long id, UUID userId, boolean isAdmin) {
+        Program program = requireAccessibleProgram(id, userId, isAdmin);
+
+        sseService.sendEventToDevice(program.getDevice().getId(), "STOP_PROGRAM", program.getFilename());
+
+        program.setStatus(Program.Status.STOPPED);
+        programRepository.save(program);
+    }
+
+    private Program requireAccessibleProgram(long programId, UUID userId, boolean isAdmin) {
+        Program program = programRepository.findById(programId)
+                .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_PROGRAM, programId));
+
+        if (!isAdmin && !programAccessService.hasAccess(program, userId)) {
+            throw new ForbiddenException(PROBLEM_FORBIDDEN_PROGRAM_ACCESS, programId);
+        }
+        return program;
+    }
 }

@@ -1,4 +1,4 @@
-package com.github.jkaste03.controller.hateoas;
+package com.github.jkaste03.controller.assembler;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
@@ -54,4 +54,6 @@ public class ProgramModelAssembler
     private Link programActionLink(long programId, @NonNull String rel) {
         return linkTo(ProgramController.class).slash(programId).withRel(rel);
     }
+
+    // Program start/stop hateoas?
 }

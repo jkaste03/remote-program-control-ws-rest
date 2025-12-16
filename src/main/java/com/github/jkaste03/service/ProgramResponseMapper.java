@@ -30,6 +30,6 @@ public class ProgramResponseMapper {
         }
 
         return new ProgramResponse(program.getId(), program.getName(), program.getFilename(), program.isPublic(),
-                allowedUsers);
+                program.getStatus(), allowedUsers);
     }
 }
