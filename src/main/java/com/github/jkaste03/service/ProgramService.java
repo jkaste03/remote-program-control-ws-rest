@@ -84,7 +84,7 @@ public class ProgramService {
     }
 
     @Transactional
-    public void startProgram(long id, UUID userId, boolean isAdmin) {
+    public ProgramResponse startProgram(long id, UUID userId, boolean isAdmin) {
         Program program = requireAccessibleProgram(id, userId, isAdmin);
 
         // SJEKK: Er det allerede startet?
@@ -97,10 +97,12 @@ public class ProgramService {
         // Send beskjed til maskinen via SSE. Data-objektet her kan være hva som helst,
         // f.eks. bare filnavnet eller en liten JSON
         sseService.sendEventToDevice(program.getDevice().getId(), COMMAND_START_PROGRAM, program.getFilename());
+
+        return programResponseMapper.toSummary(program);
     }
 
     @Transactional
-    public void stopProgram(long id, UUID userId, boolean isAdmin) {
+    public ProgramResponse stopProgram(long id, UUID userId, boolean isAdmin) {
         Program program = requireAccessibleProgram(id, userId, isAdmin);
 
         // SJEKK: Er det allerede stoppet?
@@ -111,6 +113,8 @@ public class ProgramService {
         programRepository.save(program);
 
         sseService.sendEventToDevice(program.getDevice().getId(), COMMAND_STOP_PROGRAM, program.getFilename());
+
+        return programResponseMapper.toSummary(program);
     }
 
     private Program requireAccessibleProgram(long programId, UUID userId, boolean isAdmin) {

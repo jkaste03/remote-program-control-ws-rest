@@ -2,6 +2,7 @@ package com.github.jkaste03.controller;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -59,18 +60,18 @@ public class ProgramController {
     }
 
     @PostMapping("{id}/start")
-    public ResponseEntity<Void> startProgram(@PathVariable long id, Authentication authentication,
+    @NonNull
+    public EntityModel<ProgramResponse> startProgram(@PathVariable long id, Authentication authentication,
             @AuthenticationPrincipal UserPrincipal principal) {
         boolean isAdmin = SecurityUtils.isAdmin(authentication);
-        programService.startProgram(id, principal.id(), isAdmin);
-        return ResponseEntity.ok().build(); // HATEOAS?
+        return programModelAssembler.toModel(programService.startProgram(id, principal.id(), isAdmin));
     }
 
     @PostMapping("{id}/stop")
-    public ResponseEntity<Void> stopProgram(@PathVariable long id, Authentication authentication,
+    @NonNull
+    public EntityModel<ProgramResponse> stopProgram(@PathVariable long id, Authentication authentication,
             @AuthenticationPrincipal UserPrincipal principal) {
         boolean isAdmin = SecurityUtils.isAdmin(authentication);
-        programService.stopProgram(id, principal.id(), isAdmin);
-        return ResponseEntity.ok().build(); // HATEOAS?
+        return programModelAssembler.toModel(programService.stopProgram(id, principal.id(), isAdmin));
     }
 }
