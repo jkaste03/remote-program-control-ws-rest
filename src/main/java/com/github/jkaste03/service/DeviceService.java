@@ -185,7 +185,7 @@ public class DeviceService {
     }
 
     @Transactional
-    public void syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, UUID userId) {
+    public @NonNull DeviceResponse syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, UUID userId) {
         Device device = requireOwnedDevice(deviceId, userId);
 
         // 1. Lag et Map av eksisterende programmer for O(1) oppslag
@@ -221,5 +221,7 @@ public class DeviceService {
             device.removeProgram(p);
             programRepository.delete(p);
         }
+
+        return toDeviceDetailsResponse(device, true);
     }
 }

@@ -107,12 +107,12 @@ public class DeviceController {
     }
 
     @PutMapping("/{id}/programs/sync")
-    public ResponseEntity<Void> syncPrograms(@PathVariable long id,
+    public EntityModel<DeviceResponse> syncPrograms(@PathVariable long id,
             @RequestBody @NotEmpty @Valid List<ProgramSyncRequest> programs,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        deviceService.syncPrograms(id, programs, principal.id());
-        return ResponseEntity.ok().build();
+        DeviceResponse device = deviceService.syncPrograms(id, programs, principal.id());
+        return deviceModelAssembler.toModel(device);
     }
 
     @GetMapping("/{id}/events")

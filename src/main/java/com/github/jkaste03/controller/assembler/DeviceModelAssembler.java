@@ -21,10 +21,13 @@ public class DeviceModelAssembler
     @NonNull
     public EntityModel<DeviceResponse> toModel(@NonNull DeviceResponse device) {
         long deviceId = device.id();
+
         return EntityModel.of(device,
                 deviceSelfLink(deviceId),
                 deviceActionLink(deviceId, "update"),
                 deviceActionLink(deviceId, "delete"),
+                deviceSubResourceLink(deviceId, "programs/sync", "sync-programs"),
+                deviceSubResourceLink(deviceId, "events", "events"),
                 devicesCollectionLink());
     }
 
@@ -53,5 +56,12 @@ public class DeviceModelAssembler
     @NonNull
     private Link deviceActionLink(long deviceId, @NonNull String rel) {
         return linkTo(DeviceController.class).slash(deviceId).withRel(rel);
+    }
+
+    private Link deviceSubResourceLink(long deviceId, String path, @NonNull String rel) {
+        return linkTo(DeviceController.class)
+                .slash(deviceId)
+                .slash(path) // Legger til f.eks "programs/sync"
+                .withRel(rel);
     }
 }
