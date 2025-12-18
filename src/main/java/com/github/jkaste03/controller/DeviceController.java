@@ -92,9 +92,11 @@ public class DeviceController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDevice(@PathVariable long id,
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @AuthenticationPrincipal UserPrincipal principal, Authentication authentication) {
 
-        deviceService.deleteDevice(id, principal.id());
+        boolean isAdmin = SecurityUtils.isAdmin(authentication);
+
+        deviceService.deleteDevice(id, principal.id(), isAdmin);
         return ResponseEntity.noContent().build();
     }
 

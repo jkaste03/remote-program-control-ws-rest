@@ -125,8 +125,8 @@ public class DeviceService {
     }
 
     @Transactional
-    public void deleteDevice(long id, UUID userId) {
-        Device device = requireOwnedDevice(id, userId);
+    public void deleteDevice(long id, UUID userId, boolean isAdmin) {
+        Device device = getDeviceWithAccessControl(id, userId, isAdmin);
         deviceRepository.delete(device);
     }
 
@@ -143,10 +143,15 @@ public class DeviceService {
     }
 
     public @NonNull Device requireOwnedDevice(long deviceId, UUID userId) {
+        return getDeviceWithAccessControl(deviceId, userId, false);
+    }
+
+    // Felles metode som håndterer all tilgangskontroll for enheter
+    private @NonNull Device getDeviceWithAccessControl(long deviceId, UUID userId, boolean isAdmin) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
 
-        if (!Objects.equals(device.getOwner().getId(), userId)) {
+        if (!isAdmin && !Objects.equals(device.getOwner().getId(), userId)) {
             throw new ForbiddenException(PROBLEM_FORBIDDEN_DEVICE_ACCESS, deviceId);
         }
         return device;
