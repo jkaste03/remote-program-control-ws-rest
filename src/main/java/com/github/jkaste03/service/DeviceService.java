@@ -77,7 +77,8 @@ public class DeviceService {
                             .toList();
 
                     return new DeviceResponse(device.getId(), device.getName(), device.getOwner().getUsername(),
-                            programResponses, device.getStatus(), device.getLastSeen(), device.getCreatedAt());
+                            device.getOwner().getId(), programResponses, device.getStatus(), device.getLastSeen(),
+                            device.getCreatedAt());
                 })
                 .toList();
 
@@ -166,9 +167,9 @@ public class DeviceService {
         }
 
         User owner = device.getOwner();
-        return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), includedPrograms,
-                device.getStatus(), device.getLastSeen(), device.getCreatedAt(),
-                device.getPublicIp(), device.getWakeOnLanPort(), device.getMacAddress());
+        return new DeviceResponse(device.getId(), device.getName(), owner.getUsername(), owner.getId(),
+                includedPrograms, device.getStatus(), device.getLastSeen(), device.getCreatedAt(), device.getPublicIp(),
+                device.getWakeOnLanPort(), device.getMacAddress());
     }
 
     private int resolveWakeOnLanPort(Integer requestedPort) {
