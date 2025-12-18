@@ -117,10 +117,8 @@ public class DeviceService {
 
         ensureUniqueIdentifiers(userId, newName, newMacAddress, device);
 
-        device.setName(newName);
-        device.setPublicIp(updateRequest.publicIp());
-        device.setWakeOnLanPort(resolveWakeOnLanPort(updateRequest.wakeOnLanPort()));
-        device.setMacAddress(newMacAddress);
+        device.updateDeviceDetails(newName, updateRequest.publicIp(),
+                resolveWakeOnLanPort(updateRequest.wakeOnLanPort()), newMacAddress);
 
         return toDeviceDetailsResponse(device, false);
     }

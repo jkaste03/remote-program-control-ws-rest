@@ -172,6 +172,13 @@ public class Device {
 		p.setDevice(null);
 	}
 
+	public void updateDeviceDetails(String name, String publicIp, int wakeOnLanPort, String macAddress) {
+		this.name = name;
+		this.publicIp = publicIp;
+		this.wakeOnLanPort = wakeOnLanPort;
+		this.macAddress = macAddress;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o)
@@ -191,5 +198,12 @@ public class Device {
 	@Override
 	public int hashCode() {
 		return (id != null) ? id.hashCode() : 31;
+	}
+
+	@Override
+	public String toString() {
+		return "Device [id=" + id + ", name=" + name + ", publicIp=" + publicIp + ", wakeOnLanPort=" + wakeOnLanPort
+				+ ", macAddress=" + macAddress + ", owner=" + owner + ", programs=" + programs + ", status=" + status
+				+ ", lastSeen=" + lastSeen + ", createdAt=" + createdAt + "]";
 	}
 }
