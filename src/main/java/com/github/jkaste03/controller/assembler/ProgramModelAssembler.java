@@ -57,8 +57,7 @@ public class ProgramModelAssembler
             @NonNull Iterable<? extends ProgramResponse> programs) {
         CollectionModel<EntityModel<ProgramResponse>> collection = RepresentationModelAssembler.super.toCollectionModel(
                 programs);
-        collection.add(programsCollectionLink());
-        collection.add(linkTo(ProgramController.class).withRel("create"));
+        collection.add(programsCollectionLink().withSelfRel());
         return collection;
     }
 
