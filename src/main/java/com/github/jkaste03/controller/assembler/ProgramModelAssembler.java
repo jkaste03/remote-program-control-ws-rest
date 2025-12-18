@@ -32,6 +32,7 @@ public class ProgramModelAssembler
         // HATEOAS-logikk:
         // Vi tilbyr kun handlinger som er gyldige for NÅVÆRENDE tilstand.
 
+        // TODO: Disse to må stemme overens med det som står i ProgramService.
         // Kan kun starte hvis det faktisk er stoppet
         if (program.status() == Status.STOPPED) {
             model.add(linkTo(methodOn(ProgramController.class)

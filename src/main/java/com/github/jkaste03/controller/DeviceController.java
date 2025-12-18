@@ -23,10 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.github.jkaste03.controller.assembler.DeviceModelAssembler;
+import com.github.jkaste03.controller.assembler.ProgramModelAssembler;
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
 import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
+import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.security.UserPrincipal;
 import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.service.DeviceService;
@@ -43,12 +45,15 @@ public class DeviceController {
 
     private final DeviceService deviceService;
     private final DeviceModelAssembler deviceModelAssembler;
+    private final ProgramModelAssembler programModelAssembler;
     private final SseService sseService;
 
     public DeviceController(DeviceService deviceService, DeviceModelAssembler deviceModelAssembler,
+            ProgramModelAssembler programModelAssembler,
             SseService sseService) {
         this.deviceService = deviceService;
         this.deviceModelAssembler = deviceModelAssembler;
+        this.programModelAssembler = programModelAssembler;
         this.sseService = sseService;
     }
 
@@ -101,11 +106,15 @@ public class DeviceController {
     }
 
     @PostMapping("/{id}/programs")
-    public EntityModel<DeviceResponse> addProgramToDevice(@PathVariable long id,
+    public ResponseEntity<EntityModel<ProgramResponse>> addProgramToDevice(@PathVariable long id,
             @Valid @RequestBody ProgramUpdateRequest createRequest, @AuthenticationPrincipal UserPrincipal principal) {
 
-        DeviceResponse device = deviceService.addProgramToDevice(id, createRequest, principal.id());
-        return deviceModelAssembler.toModel(device);
+        ProgramResponse program = deviceService.addProgramToDeviceReturningProgram(id, createRequest, principal.id());
+        EntityModel<ProgramResponse> model = programModelAssembler.toModel(program);
+
+        return ResponseEntity
+                .created(model.getRequiredLink(IanaLinkRelations.SELF).toUri()) // Peke på det nye programmet
+                .body(model);
     }
 
     @PutMapping("/{id}/programs/sync")

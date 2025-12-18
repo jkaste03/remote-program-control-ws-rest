@@ -175,7 +175,8 @@ public class DeviceService {
     }
 
     @Transactional
-    public @NonNull DeviceResponse addProgramToDevice(long id, ProgramUpdateRequest createRequest, UUID userId) {
+    public @NonNull ProgramResponse addProgramToDeviceReturningProgram(long id, ProgramUpdateRequest createRequest,
+            UUID userId) {
         Device device = requireOwnedDevice(id, userId);
 
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, createRequest.filename(),
@@ -185,7 +186,7 @@ public class DeviceService {
         device.addProgram(program);
         programRepository.save(program);
 
-        return toDeviceDetailsResponse(device, true);
+        return programResponseMapper.toSummary(program);
     }
 
     @Transactional
