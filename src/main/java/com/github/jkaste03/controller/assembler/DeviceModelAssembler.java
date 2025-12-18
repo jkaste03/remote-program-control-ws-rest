@@ -64,7 +64,7 @@ public class DeviceModelAssembler
             @NonNull Iterable<? extends DeviceResponse> devices) {
         CollectionModel<EntityModel<DeviceResponse>> collection = RepresentationModelAssembler.super.toCollectionModel(
                 devices);
-        collection.add(devicesCollectionLink());
+        collection.add(devicesCollectionLink().withSelfRel());
         collection.add(linkTo(DeviceController.class).withRel("create"));
         return collection;
     }
