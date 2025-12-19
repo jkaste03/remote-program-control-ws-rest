@@ -82,6 +82,12 @@ public class Program {
         this.isPublic = isPublic;
     }
 
+    public Program(String filename, String name, boolean isPublic) {
+        this.filename = filename;
+        this.name = name;
+        this.isPublic = isPublic;
+    }
+
     public Long getId() {
         return id;
     }

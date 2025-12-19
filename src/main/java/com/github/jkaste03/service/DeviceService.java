@@ -26,6 +26,7 @@ import com.github.jkaste03.model.Program;
 import com.github.jkaste03.model.User;
 import com.github.jkaste03.repository.DeviceRepository;
 import com.github.jkaste03.repository.ProgramRepository;
+import com.github.jkaste03.repository.UserRepository;
 import com.github.jkaste03.security.UserPrincipal;
 import com.github.jkaste03.security.UserProvisioningService;
 
@@ -37,6 +38,7 @@ public class DeviceService {
     private static final String PROBLEM_FORBIDDEN_DEVICE_ACCESS = "problem.forbidden.device-access";
     private static final String PROBLEM_OWNER_NAME_CONFLICT = "device.conflict.owner-name";
     private static final String PROBLEM_OWNER_MAC_ADDRESS_CONFLICT = "device.conflict.owner-mac-address";
+    private static final String PROBLEM_NOT_FOUND_USERS = "problem.not-found.users";
 
     private final DeviceRepository deviceRepository;
     private final ProgramRepository programRepository;
@@ -44,16 +46,19 @@ public class DeviceService {
     private final ProgramUniquenessValidator programUniquenessValidator;
     private final ProgramAccessService programAccessService;
     private final UserProvisioningService userProvisioningService;
+    private final UserRepository userRepository;
 
     public DeviceService(DeviceRepository deviceRepository, UserProvisioningService userProvisioningService,
             ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
-            ProgramUniquenessValidator programUniquenessValidator, ProgramAccessService programAccessService) {
+            ProgramUniquenessValidator programUniquenessValidator, ProgramAccessService programAccessService,
+            UserRepository userRepository) {
         this.deviceRepository = deviceRepository;
         this.userProvisioningService = userProvisioningService;
         this.programRepository = programRepository;
         this.programResponseMapper = programResponseMapper;
         this.programUniquenessValidator = programUniquenessValidator;
         this.programAccessService = programAccessService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -183,7 +188,21 @@ public class DeviceService {
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, createRequest.filename(),
                 createRequest.name(), null);
 
-        Program program = new Program(createRequest.filename());
+        Program program = new Program(createRequest.filename(), createRequest.name(), createRequest.isPublic());
+
+        // Håndter eventuelle allowedUserIds
+        if (!createRequest.allowedUserIds().isEmpty()) {
+            List<User> foundUsers = userRepository.findAllById(createRequest.allowedUserIds());
+
+            // HER: Sjekk om vi fant alle, ellers kast feil
+            if (foundUsers.size() != createRequest.allowedUserIds().size()) {
+                throw new ResourceNotFoundException(PROBLEM_NOT_FOUND_USERS);
+            }
+
+            // Legg til rettighetene
+            foundUsers.forEach(program::allow);
+        }
+
         device.addProgram(program);
         programRepository.save(program);
 
