@@ -25,6 +25,10 @@ public class ValidationExceptionHandler {
     private static final @NonNull URI VALIDATION_PROBLEM_TYPE = Objects
             .requireNonNull(URI.create("urn:problem-type:validation-error"));
 
+    private static final String PROBLEM_VALIDATION_TITLE = "problem.validation.title";
+    private static final String PROBLEM_VALIDATION_DETAIL = "problem.validation.detail";
+    private static final String DEFAULT_VALIDATION_TITLE = "Validation failed";
+
     private final MessageSource messageSource;
 
     public ValidationExceptionHandler(MessageSource messageSource) {
@@ -44,8 +48,8 @@ public class ValidationExceptionHandler {
 
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         pd.setType(VALIDATION_PROBLEM_TYPE);
-        pd.setTitle(msg("problem.validation.title", locale, "Validation failed"));
-        pd.setDetail(msg("problem.validation.detail", locale, "One or more fields have invalid values."));
+        pd.setTitle(msg(PROBLEM_VALIDATION_TITLE, locale, DEFAULT_VALIDATION_TITLE));
+        pd.setDetail(msg(PROBLEM_VALIDATION_DETAIL, locale, "One or more fields have invalid values."));
         pd.setInstance(requestInstance(request));
         pd.setProperty("errors", errors);
         return pd;
@@ -61,8 +65,8 @@ public class ValidationExceptionHandler {
 
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         pd.setType(VALIDATION_PROBLEM_TYPE);
-        pd.setTitle(msg("problem.validation.title", locale, "Validation failed"));
-        pd.setDetail(msg("problem.validation.detail", locale, "One or more parameters have invalid values."));
+        pd.setTitle(msg(PROBLEM_VALIDATION_TITLE, locale, DEFAULT_VALIDATION_TITLE));
+        pd.setDetail(msg(PROBLEM_VALIDATION_DETAIL, locale, "One or more parameters have invalid values."));
         pd.setInstance(requestInstance(request));
         pd.setProperty("errors", errors);
         return pd;
@@ -106,12 +110,8 @@ public class ValidationExceptionHandler {
         return new ValidationError(field, code, message, pointer);
     }
 
-    private String msg(String key, Locale locale, String fallback) {
-        try {
-            return messageSource.getMessage(key, null, locale);
-        } catch (Exception _) {
-            return fallback;
-        }
+    private String msg(String key, Locale locale, String defaultMessage, Object... args) {
+        return messageSource.getMessage(key, args, defaultMessage, locale);
     }
 
     private URI requestInstance(HttpServletRequest request) {

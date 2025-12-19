@@ -37,7 +37,8 @@ public class WakeOnLanService {
 
             log.info("Magic packet sent to {}, {}:{}", macAddress, ipStr, port);
         } catch (Exception e) {
-            log.error("Failed to send WoL packet to {}: {}", ipStr, e.getMessage());
+            log.error("Failed to send WoL packet to IP: {}, MAC: {}. Error: {}", ipStr, macAddress, e.getMessage());
+            throw new RuntimeException("Internal WoL error", e);
         }
     }
 
