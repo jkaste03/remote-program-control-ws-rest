@@ -4,10 +4,16 @@ import java.util.EnumSet;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.jkaste03.service.SseEvent;
 import com.github.jkaste03.dto.request.ProgramUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.exceptions.ConflictException;
@@ -20,8 +26,7 @@ import com.github.jkaste03.repository.ProgramRepository;
 @Service
 public class ProgramService {
 
-    private static final String COMMAND_START_PROGRAM = "START_PROGRAM";
-    private static final String COMMAND_STOP_PROGRAM = "STOP_PROGRAM";
+    private static final Logger log = LoggerFactory.getLogger(SseService.class);
 
     private static final String PROBLEM_NOT_FOUND_PROGRAM = "problem.not-found.program";
     private static final String PROBLEM_FORBIDDEN_PROGRAM_ACCESS = "problem.forbidden.program-access";
@@ -33,6 +38,10 @@ public class ProgramService {
     private final ProgramUniquenessValidator programUniquenessValidator;
     private final ProgramAccessService programAccessService;
     private final SseService sseService;
+
+    @Autowired
+    @Lazy
+    private ProgramService self; // For å kalle oss selv med transaksjon
 
     public ProgramService(ProgramRepository programRepository,
             ProgramResponseMapper programResponseMapper,
@@ -87,32 +96,60 @@ public class ProgramService {
     public ProgramResponse startProgram(long id, UUID userId, boolean isAdmin) {
         Program program = requireAccessibleProgram(id, userId, isAdmin);
 
-        // SJEKK: Er det allerede startet?
-        if (EnumSet.of(Status.TRYING_TO_START, Status.STARTED).contains(program.getStatus())) {
+        // Throw exception if not stopped
+        if (!program.getStatus().equals(Status.STOPPED)) {
             throw new ConflictException(PROBLEM_CONFLICT_START_IN_PROGRESS_OR_STARTED, program.getName());
         }
 
         program.setStatus(Status.TRYING_TO_START);
         programRepository.save(program);
-        // Send beskjed til maskinen via SSE. Data-objektet her kan være hva som helst,
-        // f.eks. bare filnavnet eller en liten JSON
-        sseService.sendEventToDevice(program.getDevice().getId(), COMMAND_START_PROGRAM, program.getFilename());
+
+        // Definer hva som skal skje hvis det feiler asynkront (timeout)
+        Runnable onAsyncFailure = () -> self.revertProgramStatus(program.getId(), Status.STOPPED);
+
+        // Kall SSE-tjenesten
+        // Hvis denne feiler synkront (IOException), kastes SseDeliveryException. Da
+        // ruller hele denne metoden tilbake, og status "TRYING_TO_START" blir aldri
+        // lagret fast.
+        sseService.sendEvent(
+                program.getDevice(),
+            SseEvent.START_PROGRAM,
+                program.getFilename(),
+                onAsyncFailure // <--- Sender med oppryddings-jobben
+        );
 
         return programResponseMapper.toSummary(program);
+    }
+
+    // Ny hjelpemetode for å rulle tilbake status asynkront
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void revertProgramStatus(long programId, Status status) {
+        programRepository.findById(programId).ifPresent(p -> {
+            log.warn("Reverting status for program {} to {}", p.getName(), status);
+            p.setStatus(status);
+            programRepository.save(p);
+        });
     }
 
     @Transactional
     public ProgramResponse stopProgram(long id, UUID userId, boolean isAdmin) {
         Program program = requireAccessibleProgram(id, userId, isAdmin);
 
-        // SJEKK: Er det allerede stoppet?
-        if (EnumSet.of(Status.TRYING_TO_STOP, Status.STOPPED).contains(program.getStatus())) {
+        // Throw exception if not started
+        if (!program.getStatus().equals(Status.STARTED)) {
             throw new ConflictException(PROBLEM_CONFLICT_STOP_IN_PROGRESS_OR_STOPPED, program.getName());
         }
         program.setStatus(Status.TRYING_TO_STOP);
         programRepository.save(program);
 
-        sseService.sendEventToDevice(program.getDevice().getId(), COMMAND_STOP_PROGRAM, program.getFilename());
+        // Kall SSE-tjenesten
+        // Hvis denne feiler synkront (IOException), kastes SseDeliveryException. Da
+        // ruller hele denne metoden tilbake, og status "TRYING_TO_STOP" blir aldri
+        // lagret fast.
+        sseService.sendEvent(
+                program.getDevice(),
+            SseEvent.STOP_PROGRAM,
+                program.getFilename());
 
         return programResponseMapper.toSummary(program);
     }

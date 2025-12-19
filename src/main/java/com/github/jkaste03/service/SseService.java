@@ -1,23 +1,38 @@
 package com.github.jkaste03.service;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.github.jkaste03.model.Device;
+import com.github.jkaste03.service.SseEvent;
 
 @Service
 public class SseService {
 
     private static final Logger log = LoggerFactory.getLogger(SseService.class);
 
-    // Mapper deviceId -> Emitter.
-    // ConcurrentHashMap er viktig for trådsikkerhet.
+    private static final long WAIT_TIMEOUT_SECONDS = 45;
+    private static final int MAX_ATTEMPTS = 2;
+
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+
+    private final Map<Long, PendingCommand> pendingCommands = new ConcurrentHashMap<>();
+
+    private final WakeOnLanService wolService;
+
+    public SseService(WakeOnLanService wolService) {
+        this.wolService = wolService;
+    }
 
     public void addEmitter(long deviceId, SseEmitter emitter) {
         emitters.put(deviceId, emitter);
@@ -26,22 +41,129 @@ public class SseService {
         emitter.onCompletion(() -> emitters.remove(deviceId));
         emitter.onTimeout(() -> emitters.remove(deviceId));
         emitter.onError(e -> emitters.remove(deviceId));
+
+        log.info("Device {} connected via SSE", deviceId);
+
+        // Check: is there a pending command for this device?
+        checkPendingAndExecute(deviceId);
     }
 
-    public void sendEventToDevice(long deviceId, @NonNull String eventName, @NonNull Object data) {
-        SseEmitter emitter = emitters.get(deviceId);
-        if (emitter == null) {
-            log.debug("No listener registered for device {}", deviceId);
-            return;
-        }
+    public void sendEvent(Device device, @NonNull SseEvent event, @NonNull Object data) {
+        sendEvent(device, event, data, null);
+    }
 
-        try {
-            emitter.send(SseEmitter.event()
-                    .name(eventName)
-                    .data(data));
-        } catch (IOException _) {
-            log.warn("Could not send event to device {}. Removing emitter.", deviceId);
-            emitters.remove(deviceId);
+    /**
+     * Try to send event. If the device is offline and the event is a start program
+     * command, WoL procedure is initiated.
+     */
+    public void sendEvent(Device device, @NonNull SseEvent event, @NonNull Object data, Runnable onFailure) {
+        SseEmitter emitter = emitters.get(device.getId());
+
+        if (emitter != null) {
+            try {
+                // 1. The device is online -> Send the event
+                sendToEmitter(device.getId(), emitter, event, data);
+            } catch (SseDeliveryException e) {
+                // Throwing the exception to make ProgramService's transaction rollback
+                throw e;
+            }
+        } else {
+            // Device is OFFLINE
+
+            if (event == SseEvent.START_PROGRAM) {
+                // 2. Start command -> Queue and initiate WoL
+                log.info("Device {} is offline. Initiating WoL flow.", device.getId());
+                wolService.sendMagicPacket(device.getMacAddress(), device.getPublicIp(), device.getWakeOnLanPort());
+
+                pendingCommands.put(device.getId(), new PendingCommand(
+                        device, event, data, 1, Instant.now(), onFailure));
+            } else {
+                // 3. STOP command (or others) -> Fail fast!
+                // Vi kan ikke stoppe en PC som ikke responderer. Kaster exception for å rulle
+                // tilbake transaksjonen.
+                log.warn("Cannot send event '{}' to offline device {}", event, device.getId());
+                throw new SseDeliveryException("Device is offline. Cannot perform " + event.eventName());
+            }
         }
+    }
+
+    private void sendToEmitter(long deviceId, SseEmitter emitter, @NonNull SseEvent event, @NonNull Object data) {
+        try {
+            emitter.send(SseEmitter.event().name(event.eventName()).data(data));
+            log.info("Sent event '{}' to device {}", event, deviceId);
+        } catch (IOException e) {
+            log.warn("Failed to send event to device {}. Removing emitter.", deviceId);
+            emitters.remove(deviceId);
+            // Throw exception to make ProgramService's transaction rollback
+            throw new SseDeliveryException("Failed to deliver SSE to device " + deviceId);
+        }
+    }
+
+    private void checkPendingAndExecute(long deviceId) {
+        PendingCommand command = pendingCommands.remove(deviceId);
+        if (command != null) {
+            log.info("Found pending command for device {}. Executing now.", deviceId);
+            // Since we now know that the emitter exists (the method is called from
+            // addEmitter), we can safely get it again.
+            SseEmitter emitter = emitters.get(deviceId);
+            if (emitter != null) {
+                sendToEmitter(deviceId, emitter, command.event(), command.data());
+            }
+        }
+    }
+
+    @Scheduled(fixedRate = 5000)
+    public void monitorPendingCommands() {
+        Instant now = Instant.now();
+
+        pendingCommands.forEach((deviceId, cmd) -> {
+            long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(cmd.lastAttempt(), now);
+
+            if (secondsSinceLastAttempt > WAIT_TIMEOUT_SECONDS) {
+                if (cmd.attemptCount() < MAX_ATTEMPTS) {
+                    // Retry
+                    log.info("Timeout waiting for device {}. Attempt {}/{}", deviceId, cmd.attemptCount() + 1,
+                            MAX_ATTEMPTS);
+
+                    wolService.sendMagicPacket(
+                            cmd.device().getMacAddress(),
+                            cmd.device().getPublicIp(),
+                            cmd.device().getWakeOnLanPort());
+
+                    // Update state
+                    pendingCommands.put(deviceId, new PendingCommand(
+                            cmd.device(), cmd.event(), cmd.data(), cmd.attemptCount() + 1, Instant.now(),
+                            cmd.onFailure()));
+                } else {
+                    // Give up
+                    log.warn("Device {} did not connect after {} attempts. Giving up command.", deviceId,
+                            MAX_ATTEMPTS);
+                    pendingCommands.remove(deviceId);
+
+                    // Run callback
+                    if (cmd.onFailure() != null) {
+                        cmd.onFailure().run();
+                    }
+                }
+            }
+        });
+    }
+
+    // Legg til en Exception-klasse for å signalisere sendefeil
+    public static class SseDeliveryException extends RuntimeException {
+        public SseDeliveryException(String message) {
+            super(message);
+        }
+    }
+
+    // Simple record for pending command state
+    private record PendingCommand(
+            Device device,
+            @NonNull SseEvent event,
+            @NonNull Object data,
+            int attemptCount,
+            Instant lastAttempt,
+            Runnable onFailure // Run on timeout
+    ) {
     }
 }
