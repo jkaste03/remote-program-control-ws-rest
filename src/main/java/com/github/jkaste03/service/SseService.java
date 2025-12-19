@@ -60,13 +60,7 @@ public class SseService {
         SseEmitter emitter = emitters.get(device.getId());
 
         if (emitter != null) {
-            try {
-                // 1. The device is online -> Send the event
-                sendToEmitter(device.getId(), emitter, event, data);
-            } catch (SseDeliveryException e) {
-                // Throwing the exception to make ProgramService's transaction rollback
-                throw e;
-            }
+            sendToEmitter(device.getId(), emitter, event, data);
         } else {
             // Device is OFFLINE
 
