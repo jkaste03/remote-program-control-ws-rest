@@ -1,6 +1,5 @@
 package com.github.jkaste03.service;
 
-import java.util.EnumSet;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,8 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.github.jkaste03.service.SseEvent;
-import com.github.jkaste03.dto.request.ProgramUpdateRequest;
+import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.exceptions.ConflictException;
 import com.github.jkaste03.exceptions.ForbiddenException;
@@ -62,7 +60,7 @@ public class ProgramService {
     }
 
     @Transactional
-    public @NonNull ProgramResponse updateProgram(long id, ProgramUpdateRequest updateRequest, UUID userId) {
+    public @NonNull ProgramResponse updateProgram(long id, ProgramCreateUpdateRequest updateRequest, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
 
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(program.getDevice(), updateRequest.filename(),
@@ -113,7 +111,7 @@ public class ProgramService {
         // lagret fast.
         sseService.sendEvent(
                 program.getDevice(),
-            SseEvent.START_PROGRAM,
+                SseEvent.START_PROGRAM,
                 program.getFilename(),
                 onAsyncFailure // <--- Sender med oppryddings-jobben
         );
@@ -148,7 +146,7 @@ public class ProgramService {
         // lagret fast.
         sseService.sendEvent(
                 program.getDevice(),
-            SseEvent.STOP_PROGRAM,
+                SseEvent.STOP_PROGRAM,
                 program.getFilename());
 
         return programResponseMapper.toSummary(program);

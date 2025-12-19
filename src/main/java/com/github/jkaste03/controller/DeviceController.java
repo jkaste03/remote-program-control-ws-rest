@@ -25,7 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.github.jkaste03.controller.assembler.DeviceModelAssembler;
 import com.github.jkaste03.controller.assembler.ProgramModelAssembler;
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
-import com.github.jkaste03.dto.request.ProgramUpdateRequest;
+import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
@@ -107,7 +107,8 @@ public class DeviceController {
 
     @PostMapping("/{id}/programs")
     public ResponseEntity<EntityModel<ProgramResponse>> addProgramToDevice(@PathVariable long id,
-            @Valid @RequestBody ProgramUpdateRequest createRequest, @AuthenticationPrincipal UserPrincipal principal) {
+            @Valid @RequestBody ProgramCreateUpdateRequest createRequest,
+            @AuthenticationPrincipal UserPrincipal principal) {
 
         ProgramResponse program = deviceService.addProgramToDeviceReturningProgram(id, createRequest, principal.id());
         EntityModel<ProgramResponse> model = programModelAssembler.toModel(program);

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
-import com.github.jkaste03.dto.request.ProgramUpdateRequest;
+import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
@@ -175,7 +175,8 @@ public class DeviceService {
     }
 
     @Transactional
-    public @NonNull ProgramResponse addProgramToDeviceReturningProgram(long id, ProgramUpdateRequest createRequest,
+    public @NonNull ProgramResponse addProgramToDeviceReturningProgram(long id,
+            ProgramCreateUpdateRequest createRequest,
             UUID userId) {
         Device device = requireOwnedDevice(id, userId);
 

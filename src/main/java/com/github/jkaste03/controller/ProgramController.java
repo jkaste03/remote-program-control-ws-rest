@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.jkaste03.controller.assembler.ProgramModelAssembler;
-import com.github.jkaste03.dto.request.ProgramUpdateRequest;
+import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.security.UserPrincipal;
@@ -45,7 +45,7 @@ public class ProgramController {
 
     @PutMapping("{id}")
     public EntityModel<ProgramResponse> updateProgram(@PathVariable long id,
-            @Valid @RequestBody ProgramUpdateRequest updateRequest,
+            @Valid @RequestBody ProgramCreateUpdateRequest updateRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         return programModelAssembler.toModel(programService.updateProgram(id, updateRequest, principal.id()));
