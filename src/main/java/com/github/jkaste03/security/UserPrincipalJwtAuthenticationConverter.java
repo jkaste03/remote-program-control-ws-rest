@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,11 +17,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.github.jkaste03.exceptions.InvalidTokenException;
+import com.github.jkaste03.service.SseService;
 
 import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
+    private static final Logger log = LoggerFactory.getLogger(SseService.class);
     private static final String INVALID_TOKEN_MESSAGE_KEY = "problem.auth.invalid-token";
 
     private static final String EMAIL_CLAIM = "email";
