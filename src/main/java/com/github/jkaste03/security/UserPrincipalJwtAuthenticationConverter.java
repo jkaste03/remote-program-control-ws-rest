@@ -21,7 +21,6 @@ import org.springframework.lang.NonNull;
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private static final String INVALID_TOKEN_MESSAGE_KEY = "problem.auth.invalid-token";
-    private static final String MISSING_CLAIM_MESSAGE_KEY = "problem.auth.missing-claims";
 
     private static final String EMAIL_CLAIM = "email";
     private static final String USERNAME_CLAIM = "preferred_username";
@@ -40,17 +39,20 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         try {
             userId = UUID.fromString(sub);
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid UUID in 'sub' claim: {}", sub);
             throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY, e);
         }
 
         String email = jwt.getClaimAsString(EMAIL_CLAIM);
         if (email == null) {
-            throw new InvalidTokenException(MISSING_CLAIM_MESSAGE_KEY, EMAIL_CLAIM);
+            log.warn("JWT missing required claim: {}", EMAIL_CLAIM);
+            throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY);
         }
 
         String username = jwt.getClaimAsString(USERNAME_CLAIM);
         if (username == null) {
-            throw new InvalidTokenException(MISSING_CLAIM_MESSAGE_KEY, USERNAME_CLAIM);
+            log.warn("JWT missing required claim: {}", USERNAME_CLAIM);
+            throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY);
         }
 
         // 2. Hent roller fra Keycloak sin spesifikke struktur
