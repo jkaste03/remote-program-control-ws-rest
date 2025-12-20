@@ -69,7 +69,8 @@ public class UserProvisioningService {
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public User createUserInNewTransaction(UserPrincipal principal) {
 		Role role = roleRepo.findByName(DEFAULT_ROLE_NAME)
-				.orElseThrow(() -> new ResourceNotFoundException("problem.not-found.role", DEFAULT_ROLE_NAME));
+				.orElseThrow(() -> new IllegalStateException("System configuration error: Required role '"
+						+ DEFAULT_ROLE_NAME + "' not found in database."));
 
 		User user = new User(principal.id(), principal.email(), principal.username(), role);
 
