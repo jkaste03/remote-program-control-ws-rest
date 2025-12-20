@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.github.jkaste03.model.Device;
-import com.github.jkaste03.service.SseEvent;
 
 @Service
 public class SseService {
@@ -29,18 +28,31 @@ public class SseService {
     private final Map<Long, PendingCommand> pendingCommands = new ConcurrentHashMap<>();
 
     private final WakeOnLanService wolService;
+    private final DeviceService deviceService;
 
-    public SseService(WakeOnLanService wolService) {
+    public SseService(WakeOnLanService wolService, DeviceService deviceService) {
         this.wolService = wolService;
+        this.deviceService = deviceService;
     }
 
     public void addEmitter(long deviceId, SseEmitter emitter) {
         emitters.put(deviceId, emitter);
 
+        // 1. Enheten har koblet til -> Sett ONLINE
+        deviceService.updateDeviceStatus(deviceId, Device.Status.ONLINE);
+        log.info("Device {} connected via SSE. Status set to ONLINE.", deviceId);
+
+        // 2. Rydd opp og sett OFFLINE når koblingen dør
+        Runnable removeAndSetOffline = () -> {
+            emitters.remove(deviceId);
+            deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
+            log.info("Device {} disconnected. Status set to OFFLINE.", deviceId);
+        };
+
         // Rydd opp når koblingen avsluttes (viktig for å unngå minnelekkasje)
-        emitter.onCompletion(() -> emitters.remove(deviceId));
-        emitter.onTimeout(() -> emitters.remove(deviceId));
-        emitter.onError(e -> emitters.remove(deviceId));
+        emitter.onCompletion(removeAndSetOffline);
+        emitter.onTimeout(removeAndSetOffline);
+        emitter.onError(e -> removeAndSetOffline.run());
 
         log.info("Device {} connected via SSE", deviceId);
 

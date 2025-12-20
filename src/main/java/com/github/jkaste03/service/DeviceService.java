@@ -1,5 +1,6 @@
 package com.github.jkaste03.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +48,7 @@ public class DeviceService {
     private final ProgramAccessService programAccessService;
     private final UserProvisioningService userProvisioningService;
     private final UserRepository userRepository;
+    // DO NOT INJECT SSESERVICE TO AVOID CIRCULAR REFERENCES
 
     public DeviceService(DeviceRepository deviceRepository, UserProvisioningService userProvisioningService,
             ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
@@ -248,5 +250,16 @@ public class DeviceService {
         }
 
         return toDeviceDetailsResponse(device, true);
+    }
+
+    @Transactional
+    public void updateDeviceStatus(long deviceId, Device.Status status) {
+        deviceRepository.findById(deviceId).ifPresent(device -> {
+            device.setStatus(status);
+            if (status == Device.Status.ONLINE) {
+                device.markSeen(Instant.now());
+            }
+            deviceRepository.save(device);
+        });
     }
 }

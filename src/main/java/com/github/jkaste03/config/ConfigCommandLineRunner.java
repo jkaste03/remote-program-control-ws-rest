@@ -60,8 +60,9 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
         userRepo.saveAll(List.of(u1, u2, u3, u4));
 
         // Enheter + programmer
-        Device userPc = new Device("User1-PC", "198.1.124.10", 9, "00:11:22:33:44:55", u1, Device.Status.OFFLINE, null);
-        Device adminServer = new Device("Admin-Server", "198.51.100.10", 7, "00:11:22:33:44:66", u2,
+        Device userPc = new Device("User1-PC", "84.211.133.68", 9, "54:AB:3A:66:70:15", u1, Device.Status.OFFLINE,
+                null);
+        Device adminServer = new Device("Admin-Server", "84.211.133.68", 7, "C8:D3:FF:44:37:DB", u2,
                 Device.Status.ONLINE,
                 Instant.now());
 
@@ -82,6 +83,15 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
 
         log.info("Seeding ferdig. Roller: {}, Brukere: {}, Enheter: {}",
                 roleRepo.count(), userRepo.count(), deviceRepo.count());
+
+        // Not to remove
+        // Reset all to OFFLINE on startup
+        List<Device> allDevices = deviceRepo.findAll();
+        for (Device d : allDevices) {
+            d.setStatus(Device.Status.OFFLINE);
+        }
+        deviceRepo.saveAll(allDevices);
+        log.info("Reset all devices to OFFLINE on startup.");
     }
 
     private Role createRole(String name) {
