@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
+import com.github.jkaste03.dto.response.ProgramCommandDto;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.exceptions.ConflictException;
 import com.github.jkaste03.exceptions.ForbiddenException;
@@ -97,6 +98,14 @@ public class ProgramService {
     }
 
     @Transactional
+    public ProgramResponse updateProgramStatus(long id, Status status, UUID userId) {
+        Program program = requireOwnedProgram(id, userId);
+        program.setStatus(status);
+        // We could add validation here to ensure valid state transitions if needed
+        return programResponseMapper.toSummary(programRepository.save(program));
+    }
+
+    @Transactional
     public void deleteProgram(long id, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
         program.getDevice().removeProgram(program);
@@ -135,7 +144,7 @@ public class ProgramService {
         sseService.sendEvent(
                 program.getDevice(),
                 SseEvent.START_PROGRAM,
-                program.getFilename(),
+                new ProgramCommandDto(program.getId(), program.getFilename()),
                 onAsyncFailure // <--- Sender med oppryddings-jobben
         );
 
@@ -170,7 +179,7 @@ public class ProgramService {
         sseService.sendEvent(
                 program.getDevice(),
                 SseEvent.STOP_PROGRAM,
-                program.getFilename());
+                new ProgramCommandDto(program.getId(), program.getFilename()));
 
         return programResponseMapper.toSummary(program);
     }
