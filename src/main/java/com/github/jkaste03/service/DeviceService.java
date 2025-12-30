@@ -110,9 +110,9 @@ public class DeviceService {
     }
 
     @Transactional(readOnly = true)
-    public @NonNull DeviceResponse getDeviceDetails(long id, UUID userId) {
+    public @NonNull DeviceResponse getDeviceDetails(long id, UUID userId, boolean includePrograms) {
         Device device = requireOwnedDevice(id, userId);
-        return toDeviceDetailsResponse(device, false);
+        return toDeviceDetailsResponse(device, includePrograms);
     }
 
     @Transactional

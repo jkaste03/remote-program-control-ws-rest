@@ -37,6 +37,8 @@ import com.github.jkaste03.service.SseService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
 @PreAuthorize("isAuthenticated()")
 @RestController
 @RequestMapping("/remote-program-control/api/v1/devices")
@@ -69,8 +71,9 @@ public class DeviceController {
 
     @GetMapping("/{id}")
     public EntityModel<DeviceResponse> getDeviceDetails(@PathVariable long id,
+            @RequestParam(required = false, defaultValue = "false") boolean includePrograms,
             @AuthenticationPrincipal UserPrincipal principal) {
-        return deviceModelAssembler.toModel(deviceService.getDeviceDetails(id, principal.id()));
+        return deviceModelAssembler.toModel(deviceService.getDeviceDetails(id, principal.id(), includePrograms));
     }
 
     @PostMapping
