@@ -13,6 +13,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.github.jkaste03.event.DeviceStatusChangedEvent;
@@ -77,7 +78,8 @@ public class SseService {
         emitter.onError(e -> remove.run());
     }
 
-    @EventListener
+    // TODO: Consider @TransactionalEventListener if needed
+    @TransactionalEventListener
     public void handleDeviceStatusChanged(DeviceStatusChangedEvent event) {
         Device device = event.getDevice();
         broadcastToDashboards("DEVICE_STATUS", Map.of(
@@ -85,7 +87,7 @@ public class SseService {
                 "status", device.getStatus()));
     }
 
-    @EventListener
+    @TransactionalEventListener
     public void handleProgramStatusChanged(ProgramStatusChangedEvent event) {
         Program program = event.getProgram();
         broadcastToDashboards("PROGRAM_STATUS", Map.of(
@@ -98,7 +100,7 @@ public class SseService {
         dashboardEmitters.forEach((id, emitter) -> {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 // Emitter is dead, remove it
                 dashboardEmitters.remove(id);
             }

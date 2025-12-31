@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
@@ -14,6 +15,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+
+import com.github.jkaste03.security.web.KeycloakOidcUserService;
 
 import jakarta.servlet.DispatcherType;
 
@@ -24,6 +27,12 @@ public class ApplicationSecurity {
 	// Inject verdien fra application.properties
 	@Value("${app.keycloak.client-id}")
 	private String keycloakClientId;
+
+	private final KeycloakOidcUserService keycloakOidcUserService;
+
+	public ApplicationSecurity(KeycloakOidcUserService keycloakOidcUserService) {
+		this.keycloakOidcUserService = keycloakOidcUserService;
+	}
 
 	/**
 	 * 1) Egen kjede for H2-konsollen – ingen JWT her.
@@ -55,11 +64,14 @@ public class ApplicationSecurity {
 				// Ekskluder H2 fra hovedkjeden (ikke strengt nødvendig, men ryddig)
 				.securityMatcher(new NegatedRequestMatcher(PathRequest.toH2Console()))
 				.csrf(csrf -> csrf.disable())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				// Vi tillater session for OAuth2 login flyten
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 				.authorizeHttpRequests(a -> a
 						.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
 						.requestMatchers("/error", "/error/**", "/favicon.ico").permitAll()
 						.anyRequest().authenticated())
+				.oauth2Login(oauth2 -> oauth2
+						.userInfoEndpoint(userInfo -> userInfo.oidcUserService(keycloakOidcUserService)))
 				.oauth2ResourceServer(
 						oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 

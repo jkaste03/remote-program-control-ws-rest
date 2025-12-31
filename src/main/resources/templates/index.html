@@ -52,16 +52,38 @@
         </style>
     </head>
     <body>
-        <h1>My Devices</h1>
-        <div id="device-container">Loading...</div>
+        <div style="display: flex; justify-content: space-between; align-items: center">
+            <h1>My Devices</h1>
+            <div>
+                <span th:text="${#authentication.name}">User</span>
+                <a href="/logout" style="margin-left: 10px; color: red">Logout</a>
+            </div>
+        </div>
+
+        <div id="device-container"></div>
+
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            const accessToken = /*[[${accessToken}]]*/ "dummy-token";
+            /*]]>*/
+        </script>
 
         <script>
             const deviceContainer = document.getElementById("device-container");
 
+            // Helper for authenticated fetch
+            async function authFetch(url, options = {}) {
+                const headers = options.headers || {};
+                if (accessToken) {
+                    headers["Authorization"] = `Bearer ${accessToken}`;
+                }
+                return fetch(url, { ...options, headers });
+            }
+
             // 1. Fetch initial data
             async function loadDevices() {
                 try {
-                    const response = await fetch("/remote-program-control/api/v1/devices");
+                    const response = await authFetch("/remote-program-control/api/v1/devices");
                     if (!response.ok) throw new Error("Failed to load devices");
                     const data = await response.json();
                     renderDevices(data._embedded ? data._embedded.deviceResponseList : []);
@@ -116,7 +138,7 @@
             // 3. Control programs (Start/Stop)
             async function controlProgram(programId, action) {
                 try {
-                    const response = await fetch(`/remote-program-control/api/v1/programs/${programId}/${action}`, {
+                    const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}/${action}`, {
                         method: "POST",
                     });
                     if (!response.ok) alert("Failed to " + action + " program");
