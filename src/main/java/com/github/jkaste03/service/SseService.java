@@ -147,6 +147,7 @@ public class SseService {
         } catch (IOException e) {
             log.warn("Failed to send event to device {}. Removing emitter.", deviceId);
             emitters.remove(deviceId);
+            deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
             // Throw exception to make ProgramService's transaction rollback
             throw new SseDeliveryException("Failed to deliver SSE to device " + deviceId);
         }
@@ -198,6 +199,24 @@ public class SseService {
                         cmd.onFailure().run();
                     }
                 }
+            }
+        });
+    }
+
+    @Scheduled(fixedRate = 30000) // Send heartbeat every 30 seconds
+    public void sendHeartbeat() {
+        if (emitters.isEmpty()) {
+            return;
+        }
+        log.debug("Sending heartbeat to {} devices", emitters.size());
+        emitters.forEach((deviceId, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event().name("PING").data("ping"));
+            } catch (Exception e) {
+                log.info("Heartbeat failed for device {}. Marking as OFFLINE.", deviceId);
+                // Remove and update status immediately
+                emitters.remove(deviceId);
+                deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
             }
         });
     }

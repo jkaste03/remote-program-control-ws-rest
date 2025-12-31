@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
@@ -256,7 +257,7 @@ public class DeviceService {
         return toDeviceDetailsResponse(device, true);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateDeviceStatus(long deviceId, Device.Status status) {
         deviceRepository.findById(deviceId).ifPresent(device -> {
             device.setStatus(status);
