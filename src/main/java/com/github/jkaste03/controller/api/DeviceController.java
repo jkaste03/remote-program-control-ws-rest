@@ -1,4 +1,4 @@
-package com.github.jkaste03.controller;
+package com.github.jkaste03.controller.api;
 
 import java.net.URI;
 import java.util.List;
@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.github.jkaste03.controller.assembler.DeviceModelAssembler;
-import com.github.jkaste03.controller.assembler.ProgramModelAssembler;
+import com.github.jkaste03.controller.api.assembler.DeviceModelAssembler;
+import com.github.jkaste03.controller.api.assembler.ProgramModelAssembler;
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
 import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;

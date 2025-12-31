@@ -1,4 +1,4 @@
-package com.github.jkaste03.controller.assembler;
+package com.github.jkaste03.controller.api.assembler;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -11,7 +11,7 @@ import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
-import com.github.jkaste03.controller.ProgramController;
+import com.github.jkaste03.controller.api.ProgramController;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.model.Program.Status;
 

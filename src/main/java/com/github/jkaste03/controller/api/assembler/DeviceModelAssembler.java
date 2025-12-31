@@ -1,4 +1,4 @@
-package com.github.jkaste03.controller.assembler;
+package com.github.jkaste03.controller.api.assembler;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import com.github.jkaste03.controller.DeviceController;
+import com.github.jkaste03.controller.api.DeviceController;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.security.UserPrincipal;

@@ -1,4 +1,4 @@
-package com.github.jkaste03.controller;
+package com.github.jkaste03.controller.api;
 
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.github.jkaste03.controller.assembler.ProgramModelAssembler;
+import com.github.jkaste03.controller.api.assembler.ProgramModelAssembler;
 import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramStatusUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramResponse;
