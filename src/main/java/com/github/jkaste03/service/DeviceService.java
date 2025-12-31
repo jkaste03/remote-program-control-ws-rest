@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
+import com.github.jkaste03.event.DeviceStatusChangedEvent;
 import com.github.jkaste03.exceptions.ConflictException;
 import com.github.jkaste03.exceptions.ForbiddenException;
 import com.github.jkaste03.exceptions.ResourceNotFoundException;
@@ -48,12 +50,13 @@ public class DeviceService {
     private final ProgramAccessService programAccessService;
     private final UserProvisioningService userProvisioningService;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
     // DO NOT INJECT SSESERVICE TO AVOID CIRCULAR REFERENCES
 
     public DeviceService(DeviceRepository deviceRepository, UserProvisioningService userProvisioningService,
             ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
             ProgramUniquenessValidator programUniquenessValidator, ProgramAccessService programAccessService,
-            UserRepository userRepository) {
+            UserRepository userRepository, ApplicationEventPublisher eventPublisher) {
         this.deviceRepository = deviceRepository;
         this.userProvisioningService = userProvisioningService;
         this.programRepository = programRepository;
@@ -61,6 +64,7 @@ public class DeviceService {
         this.programUniquenessValidator = programUniquenessValidator;
         this.programAccessService = programAccessService;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -259,7 +263,8 @@ public class DeviceService {
             if (status == Device.Status.ONLINE) {
                 device.markSeen(Instant.now());
             }
-            deviceRepository.save(device);
+            Device savedDevice = deviceRepository.save(device);
+            eventPublisher.publishEvent(new DeviceStatusChangedEvent(this, savedDevice));
         });
     }
 }

@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramCommandDto;
 import com.github.jkaste03.dto.response.ProgramResponse;
+import com.github.jkaste03.event.ProgramStatusChangedEvent;
 import com.github.jkaste03.exceptions.ConflictException;
 import com.github.jkaste03.exceptions.ForbiddenException;
 import com.github.jkaste03.exceptions.ResourceNotFoundException;
@@ -42,6 +44,7 @@ public class ProgramService {
     private final ProgramAccessService programAccessService;
     private final SseService sseService;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Autowired
     @Lazy
@@ -49,13 +52,14 @@ public class ProgramService {
 
     public ProgramService(ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
             ProgramUniquenessValidator programUniquenessValidator, ProgramAccessService programAccessService,
-            SseService sseService, UserRepository userRepository) {
+            SseService sseService, UserRepository userRepository, ApplicationEventPublisher eventPublisher) {
         this.programRepository = programRepository;
         this.programResponseMapper = programResponseMapper;
         this.programUniquenessValidator = programUniquenessValidator;
         this.programAccessService = programAccessService;
         this.sseService = sseService;
         this.userRepository = userRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -101,8 +105,10 @@ public class ProgramService {
     public ProgramResponse updateProgramStatus(long id, Status status, UUID userId) {
         Program program = requireOwnedProgram(id, userId);
         program.setStatus(status);
+        Program savedProgram = programRepository.save(program);
+        eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
         // We could add validation here to ensure valid state transitions if needed
-        return programResponseMapper.toSummary(programRepository.save(program));
+        return programResponseMapper.toSummary(savedProgram);
     }
 
     @Transactional
@@ -132,23 +138,24 @@ public class ProgramService {
         }
 
         program.setStatus(Status.TRYING_TO_START);
-        programRepository.save(program);
+        Program savedProgram = programRepository.save(program);
+        eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
 
         // Definer hva som skal skje hvis det feiler asynkront (timeout)
-        Runnable onAsyncFailure = () -> self.revertProgramStatus(program.getId(), Status.STOPPED);
+        Runnable onAsyncFailure = () -> self.revertProgramStatus(savedProgram.getId(), Status.STOPPED);
 
         // Kall SSE-tjenesten
         // Hvis denne feiler synkront (IOException), kastes SseDeliveryException. Da
         // ruller hele denne metoden tilbake, og status "TRYING_TO_START" blir aldri
         // lagret fast.
         sseService.sendEvent(
-                program.getDevice(),
+                savedProgram.getDevice(),
                 SseEvent.START_PROGRAM,
-                new ProgramCommandDto(program.getId(), program.getFilename()),
+                new ProgramCommandDto(savedProgram.getId(), savedProgram.getFilename()),
                 onAsyncFailure // <--- Sender med oppryddings-jobben
         );
 
-        return programResponseMapper.toSummary(program);
+        return programResponseMapper.toSummary(savedProgram);
     }
 
     // Ny hjelpemetode for å rulle tilbake status asynkront
@@ -157,7 +164,8 @@ public class ProgramService {
         programRepository.findById(programId).ifPresent(p -> {
             log.warn("Reverting status for program {} to {}", p.getName(), status);
             p.setStatus(status);
-            programRepository.save(p);
+            Program savedProgram = programRepository.save(p);
+            eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
         });
     }
 
@@ -170,18 +178,19 @@ public class ProgramService {
             throw new ConflictException(PROBLEM_CONFLICT_STOP_IN_PROGRESS_OR_STOPPED, program.getName());
         }
         program.setStatus(Status.TRYING_TO_STOP);
-        programRepository.save(program);
+        Program savedProgram = programRepository.save(program);
+        eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
 
         // Kall SSE-tjenesten
         // Hvis denne feiler synkront (IOException), kastes SseDeliveryException. Da
         // ruller hele denne metoden tilbake, og status "TRYING_TO_STOP" blir aldri
         // lagret fast.
         sseService.sendEvent(
-                program.getDevice(),
+                savedProgram.getDevice(),
                 SseEvent.STOP_PROGRAM,
-                new ProgramCommandDto(program.getId(), program.getFilename()));
+                new ProgramCommandDto(savedProgram.getId(), savedProgram.getFilename()));
 
-        return programResponseMapper.toSummary(program);
+        return programResponseMapper.toSummary(savedProgram);
     }
 
     private Program requireAccessibleProgram(long programId, UUID userId, boolean isAdmin) {

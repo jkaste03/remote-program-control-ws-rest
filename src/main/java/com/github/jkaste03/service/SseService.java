@@ -4,16 +4,21 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.github.jkaste03.event.DeviceStatusChangedEvent;
+import com.github.jkaste03.event.ProgramStatusChangedEvent;
 import com.github.jkaste03.model.Device;
+import com.github.jkaste03.model.Program;
 
 @Service
 public class SseService {
@@ -24,6 +29,7 @@ public class SseService {
     private static final int MAX_ATTEMPTS = 2;
 
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final Map<String, SseEmitter> dashboardEmitters = new ConcurrentHashMap<>();
 
     private final Map<Long, PendingCommand> pendingCommands = new ConcurrentHashMap<>();
 
@@ -58,6 +64,45 @@ public class SseService {
 
         // Check: is there a pending command for this device?
         checkPendingAndExecute(deviceId);
+    }
+
+    public void addDashboardEmitter(SseEmitter emitter) {
+        String id = UUID.randomUUID().toString();
+        dashboardEmitters.put(id, emitter);
+
+        Runnable remove = () -> dashboardEmitters.remove(id);
+
+        emitter.onCompletion(remove);
+        emitter.onTimeout(remove);
+        emitter.onError(e -> remove.run());
+    }
+
+    @EventListener
+    public void handleDeviceStatusChanged(DeviceStatusChangedEvent event) {
+        Device device = event.getDevice();
+        broadcastToDashboards("DEVICE_STATUS", Map.of(
+                "deviceId", device.getId(),
+                "status", device.getStatus()));
+    }
+
+    @EventListener
+    public void handleProgramStatusChanged(ProgramStatusChangedEvent event) {
+        Program program = event.getProgram();
+        broadcastToDashboards("PROGRAM_STATUS", Map.of(
+                "programId", program.getId(),
+                "deviceId", program.getDevice().getId(),
+                "status", program.getStatus()));
+    }
+
+    private void broadcastToDashboards(String eventName, Object data) {
+        dashboardEmitters.forEach((id, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event().name(eventName).data(data));
+            } catch (IOException e) {
+                // Emitter is dead, remove it
+                dashboardEmitters.remove(id);
+            }
+        });
     }
 
     public void sendEvent(Device device, @NonNull SseEvent event, @NonNull Object data) {
