@@ -116,13 +116,16 @@ public class DeviceService {
 
     @Transactional(readOnly = true)
     public @NonNull DeviceResponse getDeviceDetails(long id, UUID userId, boolean includePrograms) {
-        Device device = requireOwnedDevice(id, userId);
+        Device device = includePrograms
+                ? getOwnedDeviceWithPrograms(id, userId)
+                : getOwnedDeviceWithOwner(id, userId);
+
         return toDeviceDetailsResponse(device, includePrograms);
     }
 
     @Transactional
     public @NonNull DeviceResponse updateDevice(long id, DeviceCreateRequest updateRequest, UUID userId) {
-        Device device = requireOwnedDevice(id, userId);
+        Device device = getOwnedDeviceWithOwner(id, userId);
 
         String newName = updateRequest.name();
         String newMacAddress = updateRequest.macAddress();
@@ -154,16 +157,35 @@ public class DeviceService {
     }
 
     public @NonNull Device requireOwnedDevice(long deviceId, UUID userId) {
-        return getDeviceWithAccessControl(deviceId, userId, false);
+        return getOwnedDeviceWithOwner(deviceId, userId);
     }
 
-    // Felles metode som håndterer all tilgangskontroll for enheter
-    private @NonNull Device getDeviceWithAccessControl(long deviceId, UUID userId, boolean isAdmin) {
-        Device device = deviceRepository.findById(deviceId)
+    private @NonNull Device getOwnedDeviceWithPrograms(long deviceId, UUID userId) {
+        Device device = deviceRepository.findWithProgramsAndOwnerById(deviceId)
+                .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
+        requireOwnership(device, userId);
+        return device;
+    }
+
+    private @NonNull Device getOwnedDeviceWithOwner(long deviceId, UUID userId) {
+        Device device = deviceRepository.findWithOwnerById(deviceId)
+                .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
+        requireOwnership(device, userId);
+        return device;
+    }
+
+    private void requireOwnership(Device device, UUID userId) {
+        if (!Objects.equals(device.getOwner().getId(), userId)) {
+            throw new ForbiddenException(PROBLEM_FORBIDDEN_DEVICE_ACCESS, device.getId());
+        }
+    }
+
+    private Device getDeviceWithAccessControl(long deviceId, UUID userId, boolean isAdmin) {
+        Device device = deviceRepository.findWithOwnerById(deviceId)
                 .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_DEVICE, deviceId));
 
-        if (!isAdmin && !Objects.equals(device.getOwner().getId(), userId)) {
-            throw new ForbiddenException(PROBLEM_FORBIDDEN_DEVICE_ACCESS, deviceId);
+        if (!isAdmin) {
+            requireOwnership(device, userId);
         }
         return device;
     }
@@ -188,8 +210,7 @@ public class DeviceService {
 
     @Transactional
     public @NonNull ProgramResponse addProgramToDeviceReturningProgram(long id,
-            ProgramCreateUpdateRequest createRequest,
-            UUID userId) {
+            ProgramCreateUpdateRequest createRequest, UUID userId) {
         Device device = requireOwnedDevice(id, userId);
 
         programUniquenessValidator.requireUniqueNameAndFilenameForDevice(device, createRequest.filename(),
@@ -218,7 +239,7 @@ public class DeviceService {
 
     @Transactional
     public @NonNull DeviceResponse syncPrograms(long deviceId, List<ProgramSyncRequest> detectedPrograms, UUID userId) {
-        Device device = requireOwnedDevice(deviceId, userId);
+        Device device = getOwnedDeviceWithPrograms(deviceId, userId);
 
         // 1. Lag et Map av eksisterende programmer for O(1) oppslag
         Map<String, Program> existingProgramsMap = device.getPrograms().stream()

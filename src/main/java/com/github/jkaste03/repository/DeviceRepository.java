@@ -1,6 +1,7 @@
 package com.github.jkaste03.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,12 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
      boolean existsByOwnerIdAndName(UUID ownerId, String name);
 
      boolean existsByOwnerIdAndMacAddress(UUID ownerId, String macAddress);
+
+     @EntityGraph(attributePaths = { "programs", "owner" })
+     Optional<Device> findWithProgramsAndOwnerById(Long id);
+
+     @EntityGraph(attributePaths = { "owner" })
+     Optional<Device> findWithOwnerById(Long id);
 
      @EntityGraph(attributePaths = { "programs", "programs.allowedUsers", "owner" })
      @Query("select d from Device d")
