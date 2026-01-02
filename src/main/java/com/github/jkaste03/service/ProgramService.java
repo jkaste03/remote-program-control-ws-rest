@@ -34,8 +34,8 @@ public class ProgramService {
 
     private static final String PROBLEM_NOT_FOUND_PROGRAM = "problem.not-found.program";
     private static final String PROBLEM_FORBIDDEN_PROGRAM_ACCESS = "problem.forbidden.program-access";
-    private static final String PROBLEM_CONFLICT_START_IN_PROGRESS_OR_STARTED = "program.conflict.start-in-progress-or-started";
-    private static final String PROBLEM_CONFLICT_STOP_IN_PROGRESS_OR_STOPPED = "program.conflict.stop-in-progress-or-stopped";
+    private static final String PROBLEM_CONFLICT_START_NOT_STOPPED = "program.conflict.start-not-stopped";
+    private static final String PROBLEM_CONFLICT_STOP_NOT_STARTED = "program.conflict.stop-not-started";
     private static final String PROBLEM_NOT_FOUND_USERS = "problem.not-found.users";
 
     private final ProgramRepository programRepository;
@@ -134,7 +134,7 @@ public class ProgramService {
 
         // Throw exception if not stopped
         if (!program.getStatus().equals(Status.STOPPED)) {
-            throw new ConflictException(PROBLEM_CONFLICT_START_IN_PROGRESS_OR_STARTED, program.getName());
+            throw new ConflictException(PROBLEM_CONFLICT_START_NOT_STOPPED, program.getName());
         }
 
         program.setStatus(Status.TRYING_TO_START);
@@ -175,7 +175,7 @@ public class ProgramService {
 
         // Throw exception if not started
         if (!program.getStatus().equals(Status.STARTED)) {
-            throw new ConflictException(PROBLEM_CONFLICT_STOP_IN_PROGRESS_OR_STOPPED, program.getName());
+            throw new ConflictException(PROBLEM_CONFLICT_STOP_NOT_STARTED, program.getName());
         }
         program.setStatus(Status.TRYING_TO_STOP);
         Program savedProgram = programRepository.save(program);
