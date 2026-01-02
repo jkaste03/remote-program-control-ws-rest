@@ -1,6 +1,7 @@
 package com.github.jkaste03.exceptions;
 
 import java.net.URI;
+import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -9,9 +10,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 import com.github.jkaste03.service.SseService;
 
@@ -101,6 +104,30 @@ public class ApiExceptionHandler {
 				"An internal error occurred in the system. Please try again later or contact support."));
 		pd.setInstance(requestInstance(request));
 		return pd;
+	}
+
+	@ExceptionHandler({ AsyncRequestNotUsableException.class, IOException.class })
+	public void handleSseClientDisconnect(Exception ex, HttpServletRequest request) throws Exception {
+		if (isSseRequest(request)) {
+			log.debug("SSE client disconnected: {}", request.getRequestURI());
+			return; // do not attempt to render ProblemDetail on SSE streams
+		}
+		throw ex;
+	}
+
+	@ExceptionHandler(HttpMessageNotWritableException.class)
+	public void handleSseWriteFailure(HttpMessageNotWritableException ex, HttpServletRequest request) throws Exception {
+		if (isSseRequest(request)) {
+			log.debug("SSE write failed (client likely gone): {}", request.getRequestURI());
+			return;
+		}
+		throw ex;
+	}
+
+	private boolean isSseRequest(HttpServletRequest request) {
+		String accept = request.getHeader("Accept");
+		return (accept != null && accept.contains("text/event-stream"))
+				|| request.getRequestURI().contains("/events");
 	}
 
 	private String msg(String key, Locale locale, Object... args) {
