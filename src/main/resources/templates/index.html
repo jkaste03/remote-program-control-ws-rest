@@ -141,7 +141,10 @@
                     const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}/${action}`, {
                         method: "POST",
                     });
-                    if (!response.ok) alert("Failed to " + action + " program");
+                    if (!response.ok) {
+                        const body = await response.text();
+                        alert("Failed to " + action + " program: " + body);
+                    }
                 } catch (e) {
                     console.error(e);
                 }
