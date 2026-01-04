@@ -27,6 +27,7 @@ import com.github.jkaste03.controller.api.assembler.ProgramModelAssembler;
 import com.github.jkaste03.dto.request.DeviceCreateRequest;
 import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.request.ProgramSyncRequest;
+import com.github.jkaste03.dto.response.DeviceResource;
 import com.github.jkaste03.dto.response.DeviceResponse;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.security.UserPrincipal;
@@ -60,7 +61,7 @@ public class DeviceController {
     }
 
     @GetMapping
-    public CollectionModel<EntityModel<DeviceResponse>> getDevicesUserCanInteractWith(Authentication authentication,
+    public CollectionModel<EntityModel<DeviceResource>> getDevicesUserCanInteractWith(Authentication authentication,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         boolean isAdmin = SecurityUtils.isAdmin(authentication);
@@ -70,19 +71,19 @@ public class DeviceController {
     }
 
     @GetMapping("/{id}")
-    public EntityModel<DeviceResponse> getDeviceDetails(@PathVariable long id,
+    public EntityModel<DeviceResource> getDeviceDetails(@PathVariable long id,
             @RequestParam(required = false, defaultValue = "false") boolean includePrograms,
             @AuthenticationPrincipal UserPrincipal principal) {
         return deviceModelAssembler.toModel(deviceService.getDeviceDetails(id, principal.id(), includePrograms));
     }
 
     @PostMapping
-    public ResponseEntity<EntityModel<DeviceResponse>> createDevice(
+    public ResponseEntity<EntityModel<DeviceResource>> createDevice(
             @Valid @RequestBody DeviceCreateRequest createRequest,
             @NonNull @AuthenticationPrincipal UserPrincipal principal) {
 
         DeviceResponse device = deviceService.createDevice(createRequest, principal);
-        EntityModel<DeviceResponse> model = deviceModelAssembler.toModel(device);
+        EntityModel<DeviceResource> model = deviceModelAssembler.toModel(device);
 
         URI location = model.getRequiredLink(IanaLinkRelations.SELF.value()).toUri();
 
@@ -90,7 +91,7 @@ public class DeviceController {
     }
 
     @PutMapping("/{id}")
-    public EntityModel<DeviceResponse> updateDevice(@PathVariable long id,
+    public EntityModel<DeviceResource> updateDevice(@PathVariable long id,
             @Valid @RequestBody DeviceCreateRequest updateRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
 
@@ -122,7 +123,7 @@ public class DeviceController {
     }
 
     @PutMapping("/{id}/programs/sync")
-    public EntityModel<DeviceResponse> syncPrograms(@PathVariable long id,
+    public EntityModel<DeviceResource> syncPrograms(@PathVariable long id,
             @RequestBody @NotEmpty @Valid List<ProgramSyncRequest> programs,
             @AuthenticationPrincipal UserPrincipal principal) {
 

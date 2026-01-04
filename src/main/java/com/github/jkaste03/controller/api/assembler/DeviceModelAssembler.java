@@ -15,17 +15,26 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.github.jkaste03.controller.api.DeviceController;
+import com.github.jkaste03.controller.api.assembler.ProgramModelAssembler;
+import com.github.jkaste03.dto.response.DeviceResource;
 import com.github.jkaste03.dto.response.DeviceResponse;
+import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.security.SecurityUtils;
 import com.github.jkaste03.security.UserPrincipal;
 
 @Component
 public class DeviceModelAssembler
-        implements RepresentationModelAssembler<DeviceResponse, EntityModel<DeviceResponse>> {
+        implements RepresentationModelAssembler<DeviceResponse, EntityModel<DeviceResource>> {
+
+    private final ProgramModelAssembler programModelAssembler;
+
+    public DeviceModelAssembler(ProgramModelAssembler programModelAssembler) {
+        this.programModelAssembler = programModelAssembler;
+    }
 
     @Override
     @NonNull
-    public EntityModel<DeviceResponse> toModel(@NonNull DeviceResponse device) {
+    public EntityModel<DeviceResource> toModel(@NonNull DeviceResponse device) {
         long deviceId = device.id();
 
         // 1. Hent nåværende autentisering
@@ -41,7 +50,25 @@ public class DeviceModelAssembler
         }
 
         // 3. Legg alltid til 'collection'
-        EntityModel<DeviceResponse> model = EntityModel.of(device,
+        CollectionModel<EntityModel<ProgramResponse>> programModels = null;
+        if (device.programs() != null) {
+            programModels = programModelAssembler.toCollectionModel(device.programs());
+        }
+
+        DeviceResource resource = new DeviceResource(
+                device.id(),
+                device.name(),
+                device.username(),
+                device.ownerId(),
+                device.status(),
+                device.lastSeen(),
+                device.createdAt(),
+                device.publicIp(),
+                device.wakeOnLanPort(),
+                device.macAddress(),
+                programModels);
+
+        EntityModel<DeviceResource> model = EntityModel.of(resource,
                 devicesCollectionLink());
 
         // 4. Legg til administrative linker KUN hvis eier eller admin
@@ -60,9 +87,9 @@ public class DeviceModelAssembler
 
     @Override
     @NonNull
-    public CollectionModel<EntityModel<DeviceResponse>> toCollectionModel(
+    public CollectionModel<EntityModel<DeviceResource>> toCollectionModel(
             @NonNull Iterable<? extends DeviceResponse> devices) {
-        CollectionModel<EntityModel<DeviceResponse>> collection = RepresentationModelAssembler.super.toCollectionModel(
+        CollectionModel<EntityModel<DeviceResource>> collection = RepresentationModelAssembler.super.toCollectionModel(
                 devices);
         collection.add(devicesCollectionLink().withSelfRel());
         collection.add(linkTo(DeviceController.class).withRel("create"));

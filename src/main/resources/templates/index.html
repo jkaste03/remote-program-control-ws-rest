@@ -4,174 +4,31 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Remote Program Control</title>
-        <style>
-            body {
-                font-family: sans-serif;
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-            .device {
-                border: 1px solid #ccc;
-                padding: 15px;
-                margin-bottom: 15px;
-                border-radius: 5px;
-            }
-            .device-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .status {
-                font-weight: bold;
-            }
-            .status.ONLINE {
-                color: green;
-            }
-            .status.OFFLINE {
-                color: red;
-            }
-            .program-list {
-                margin-top: 10px;
-            }
-            .program {
-                display: flex;
-                justify-content: space-between;
-                padding: 5px 0;
-                border-bottom: 1px solid #eee;
-            }
-            .program-status {
-                font-size: 0.9em;
-                color: #666;
-                margin-right: 10px;
-            }
-            button {
-                cursor: pointer;
-                padding: 5px 10px;
-            }
-        </style>
+        <meta name="access-token" th:content="${accessToken}" content="" />
+        <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css" />
     </head>
     <body>
-        <div style="display: flex; justify-content: space-between; align-items: center">
-            <h1>My Devices</h1>
-            <div>
-                <span th:text="${#authentication.name}">User</span>
-                <a href="/logout" style="margin-left: 10px; color: red">Logout</a>
-            </div>
+        <div class="page">
+            <header class="top-bar">
+                <div>
+                    <p class="eyebrow">Remote Program Control</p>
+                    <h1>My devices</h1>
+                </div>
+                <div class="user-box">
+                    <span class="user-name" th:text="${#authentication.name}">User</span>
+                    <a class="logout" href="/logout">Logout</a>
+                </div>
+            </header>
+
+            <div id="toast" class="toast toast-hidden" role="status"></div>
+            <div id="device-container" class="device-container" aria-live="polite"></div>
         </div>
 
-        <div id="device-container"></div>
-
-        <script th:inline="javascript">
+        <script>
             /*<![CDATA[*/
-            const accessToken = /*[[${accessToken}]]*/ "dummy-token";
+            window.__ACCESS_TOKEN__ = /*[[${accessToken}]]*/ null;
             /*]]>*/
         </script>
-
-        <script>
-            const deviceContainer = document.getElementById("device-container");
-
-            // Helper for authenticated fetch
-            async function authFetch(url, options = {}) {
-                const headers = options.headers || {};
-                if (accessToken) {
-                    headers["Authorization"] = `Bearer ${accessToken}`;
-                }
-                return fetch(url, { ...options, headers });
-            }
-
-            // 1. Fetch initial data
-            async function loadDevices() {
-                try {
-                    const response = await authFetch("/remote-program-control/api/v1/devices");
-                    if (!response.ok) throw new Error("Failed to load devices");
-                    const data = await response.json();
-                    renderDevices(data._embedded ? data._embedded.deviceResponseList : []);
-                } catch (error) {
-                    deviceContainer.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
-                }
-            }
-
-            // 2. Render devices
-            function renderDevices(devices) {
-                deviceContainer.innerHTML = "";
-                if (devices.length === 0) {
-                    deviceContainer.innerHTML = "<p>No devices found.</p>";
-                    return;
-                }
-
-                devices.forEach((device) => {
-                    const div = document.createElement("div");
-                    div.className = "device";
-                    div.id = `device-${device.id}`;
-                    div.innerHTML = `
-                    <div class="device-header">
-                        <h2>${device.name}</h2>
-                        <span class="status ${device.status}" id="device-status-${device.id}">${device.status}</span>
-                    </div>
-                    <div class="program-list" id="programs-${device.id}">
-                        ${renderPrograms(device.programs, device.id)}
-                    </div>
-                `;
-                    deviceContainer.appendChild(div);
-                });
-            }
-
-            function renderPrograms(programs, deviceId) {
-                if (!programs || programs.length === 0) return "<p>No programs.</p>";
-                return programs
-                    .map(
-                        (p) => `
-                <div class="program" id="program-${p.id}">
-                    <span>${p.name}</span>
-                    <div>
-                        <span class="program-status" id="program-status-${p.id}">${p.status}</span>
-                        <button onclick="controlProgram(${p.id}, 'start')">Start</button>
-                        <button onclick="controlProgram(${p.id}, 'stop')">Stop</button>
-                    </div>
-                </div>
-            `
-                    )
-                    .join("");
-            }
-
-            // 3. Control programs (Start/Stop)
-            async function controlProgram(programId, action) {
-                try {
-                    const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}/${action}`, {
-                        method: "POST",
-                    });
-                    if (!response.ok) {
-                        const body = await response.text();
-                        alert("Failed to " + action + " program: " + body);
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-
-            // 4. SSE Connection for Live Updates
-            const eventSource = new EventSource("/api/v1/dashboard/events");
-
-            eventSource.addEventListener("DEVICE_STATUS", function (event) {
-                const data = JSON.parse(event.data);
-                const statusEl = document.getElementById(`device-status-${data.deviceId}`);
-                if (statusEl) {
-                    statusEl.textContent = data.status;
-                    statusEl.className = `status ${data.status}`;
-                }
-            });
-
-            eventSource.addEventListener("PROGRAM_STATUS", function (event) {
-                const data = JSON.parse(event.data);
-                const statusEl = document.getElementById(`program-status-${data.programId}`);
-                if (statusEl) {
-                    statusEl.textContent = data.status;
-                }
-            });
-
-            // Initial load
-            loadDevices();
-        </script>
+        <script type="module" th:src="@{/js/dashboard.js}" src="/js/dashboard.js"></script>
     </body>
 </html>
