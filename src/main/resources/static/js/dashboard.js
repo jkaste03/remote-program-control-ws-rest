@@ -176,7 +176,6 @@ async function handleProgramAction(programId, rel, button) {
         const link = `${PROGRAMS_URL}/${programId}/${rel}`;
         await fetchJson(link, { method: "POST" });
         showToast(rel === "start" ? "Starting program..." : "Stopping program...");
-        await loadDevices();
     } catch (error) {
         showToast(error.message || "Could not perform action", "error");
     } finally {
