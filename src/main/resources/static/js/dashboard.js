@@ -5,6 +5,8 @@ const DASHBOARD_EVENTS_URL = "/api/v1/dashboard/events";
 
 const deviceContainer = document.getElementById("device-container");
 const toastEl = document.getElementById("toast");
+const deviceState = new Map();
+const programState = new Map();
 
 function getAccessToken() {
     const inline = typeof window !== "undefined" ? window.__ACCESS_TOKEN__ : null;
@@ -25,6 +27,22 @@ async function authFetch(url, options = {}) {
     }
     const response = await fetch(url, { ...options, headers });
     return response;
+}
+
+function normalizeHref(href) {
+    if (!href) return null;
+    try {
+        return new URL(href, window.location.origin).href;
+    } catch (_) {
+        return href;
+    }
+}
+
+function getLink(resource, rel) {
+    const links = resource?._links;
+    const link = links?.[rel];
+    if (!link) return null;
+    return normalizeHref(typeof link === "string" ? link : link.href);
 }
 
 async function toProblem(response) {
@@ -82,14 +100,20 @@ function extractDevices(payload) {
 }
 
 function renderDevices(devices) {
+    deviceState.clear();
+    programState.clear();
+
     if (!Array.isArray(devices) || devices.length === 0) {
         deviceContainer.innerHTML = '<div class="empty-state">No devices available yet.</div>';
         return;
     }
 
     const html = devices
-        .map(
-            (device) => `
+        .map((device) => {
+            deviceState.set(device.id, device);
+            const actions = renderDeviceActions(device);
+
+            return `
             <article class="card device-card" data-device-id="${device.id}">
                 <div class="card-header">
                     <div>
@@ -101,14 +125,36 @@ function renderDevices(devices) {
                         ${device.status}
                     </span>
                 </div>
+                ${actions}
                 <div class="program-list" id="programs-${device.id}">
                     ${renderPrograms(extractProgramsFromDevice(device), device.id)}
                 </div>
-            </article>`
-        )
+            </article>`;
+        })
         .join("");
 
     deviceContainer.innerHTML = html;
+}
+
+function renderDeviceActions(device) {
+    const updateLink = getLink(device, "self");
+    const deleteLink = getLink(device, "delete");
+    if (!updateLink && !deleteLink) return "";
+
+    return `
+        <div class="card-actions">
+            ${
+                updateLink
+                    ? `<button class="btn" data-device-action="update" data-device-id="${device.id}" data-href="${updateLink}">Update device</button>`
+                    : ""
+            }
+            ${
+                deleteLink
+                    ? `<button class="btn btn-danger" data-device-action="delete" data-device-id="${device.id}" data-href="${deleteLink}">Delete device</button>`
+                    : ""
+            }
+        </div>
+    `;
 }
 
 function renderPrograms(programs, deviceId) {
@@ -118,8 +164,13 @@ function renderPrograms(programs, deviceId) {
 
     return programs
         .map((program) => {
+            programState.set(program.id, { program, deviceId });
             const status = program.status;
-            const action = status === "STOPPED" ? "start" : status === "STARTED" ? "stop" : null;
+            const startLink = getLink(program, "start");
+            const stopLink = getLink(program, "stop");
+            const updateLink = getLink(program, "self");
+            const action = startLink ? "start" : stopLink ? "stop" : null;
+            const actionHref = startLink || stopLink || "";
             const busy = status === "TRYING_TO_START" || status === "TRYING_TO_STOP";
             const label = action === "start" ? "Start" : action === "stop" ? "Stop" : "Busy";
             const disabled = !action || busy ? "disabled" : "";
@@ -134,7 +185,12 @@ function renderPrograms(programs, deviceId) {
                     <div class="actions">
                         <button class="btn btn-primary" data-program-action="${action ?? ""}" data-program-id="${
                 program.id
-            }" ${disabled}>${label}</button>
+            }" data-href="${actionHref}" ${disabled}>${label}</button>
+                        ${
+                            updateLink
+                                ? `<button class="btn" data-program-action="update" data-program-id="${program.id}" data-href="${updateLink}">Update</button>`
+                                : ""
+                        }
                     </div>
                 </div>
             `;
@@ -164,7 +220,7 @@ async function loadDevices() {
     }
 }
 
-async function handleProgramAction(programId, rel, button) {
+async function handleProgramAction(programId, rel, href, button) {
     button.disabled = true;
     button.dataset.loading = "true";
 
@@ -173,7 +229,7 @@ async function handleProgramAction(programId, rel, button) {
             throw new Error("Unknown action.");
         }
 
-        const link = `${PROGRAMS_URL}/${programId}/${rel}`;
+        const link = normalizeHref(href) || `${PROGRAMS_URL}/${programId}/${rel}`;
         await fetchJson(link, { method: "POST" });
         showToast(rel === "start" ? "Starting program..." : "Stopping program...");
     } catch (error) {
@@ -181,6 +237,43 @@ async function handleProgramAction(programId, rel, button) {
     } finally {
         button.disabled = false;
         delete button.dataset.loading;
+    }
+}
+
+async function handleProgramUpdate(programId, href, button) {
+    const target = normalizeHref(href);
+    if (target) {
+        window.location.href = target;
+    }
+}
+
+async function handleDeviceAction(deviceId, action, href, button) {
+    const device = deviceState.get(deviceId) || {};
+    const target = normalizeHref(href) || `${DEVICES_URL}/${deviceId}`;
+
+    if (action === "update") {
+        window.location.href = target;
+        return;
+    }
+
+    if (action === "delete") {
+        const confirmed = confirm("Delete this device?");
+        if (!confirmed) return;
+
+        button.disabled = true;
+        try {
+            const response = await authFetch(target, { method: "DELETE" });
+            if (!response.ok) {
+                throw await toProblem(response);
+            }
+            showToast("Device deleted");
+            await loadDevices();
+        } catch (error) {
+            showToast(error.message || "Could not delete device", "error");
+        } finally {
+            button.disabled = false;
+        }
+        return;
     }
 }
 
@@ -251,12 +344,26 @@ function initSse() {
 }
 
 deviceContainer.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-program-action]");
-    if (!button) return;
-    const programId = Number(button.dataset.programId);
-    const rel = button.dataset.programAction;
-    if (!programId || !rel) return;
-    handleProgramAction(programId, rel, button);
+    const programButton = event.target.closest("[data-program-action]");
+    if (programButton) {
+        const programId = Number(programButton.dataset.programId);
+        const rel = programButton.dataset.programAction;
+        if (!programId || !rel) return;
+        if (rel === "update") {
+            handleProgramUpdate(programId, programButton.dataset.href, programButton);
+        } else {
+            handleProgramAction(programId, rel, programButton.dataset.href, programButton);
+        }
+        return;
+    }
+
+    const deviceButton = event.target.closest("[data-device-action]");
+    if (deviceButton) {
+        const deviceId = Number(deviceButton.dataset.deviceId);
+        const action = deviceButton.dataset.deviceAction;
+        if (!deviceId || !action) return;
+        handleDeviceAction(deviceId, action, deviceButton.dataset.href, deviceButton);
+    }
 });
 
 (async function bootstrap() {

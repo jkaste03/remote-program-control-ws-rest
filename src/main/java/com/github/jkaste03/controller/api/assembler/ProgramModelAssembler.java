@@ -10,10 +10,14 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.RepresentationModelAssembler;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.github.jkaste03.controller.api.ProgramController;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.model.Program.Status;
+import com.github.jkaste03.security.SecurityUtils;
+import com.github.jkaste03.security.UserPrincipal;
 
 @Component
 public class ProgramModelAssembler
@@ -23,11 +27,19 @@ public class ProgramModelAssembler
     @NonNull
     public EntityModel<ProgramResponse> toModel(@NonNull ProgramResponse program) {
         long programId = program.id();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isOwner = auth != null && auth.getPrincipal() instanceof UserPrincipal principal
+                && program.ownerId() != null && program.ownerId().equals(principal.id());
+
         EntityModel<ProgramResponse> model = EntityModel.of(program,
-                programSelfLink(programId),
-                programActionLink(programId, "update"),
-                programActionLink(programId, "delete"),
                 programsCollectionLink());
+
+        // Kun eier får update-link (admins uten eierskap skal ikke få)
+        if (isOwner) {
+            model.add(programSelfLink(programId));
+            model.add(programActionLink(programId, "update"));
+        }
 
         // HATEOAS-logikk:
         // Vi tilbyr kun handlinger som er gyldige for NÅVÆRENDE tilstand.

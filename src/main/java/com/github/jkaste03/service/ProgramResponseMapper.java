@@ -29,7 +29,13 @@ public class ProgramResponseMapper {
                     .toList();
         }
 
-        return new ProgramResponse(program.getId(), program.getFilename(), program.getName(), program.isPublic(),
-                program.getStatus(), allowedUsers);
+        return new ProgramResponse(
+                program.getId(),
+                program.getFilename(),
+                program.getName(),
+                program.isPublic(),
+                program.getStatus(),
+                program.getDevice().getOwner().getId(),
+                allowedUsers);
     }
 }

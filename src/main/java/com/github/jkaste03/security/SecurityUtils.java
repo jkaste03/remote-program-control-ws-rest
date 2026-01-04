@@ -12,6 +12,7 @@ public final class SecurityUtils {
         if (authentication == null || authentication.getAuthorities() == null) {
             return false;
         }
+
         return authentication.getAuthorities().stream()
                 .anyMatch(authority -> AppRoles.ROLE_ADMIN.equals(authority.getAuthority()));
     }
