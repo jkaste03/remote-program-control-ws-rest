@@ -12,8 +12,12 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 
 import com.github.jkaste03.security.web.KeycloakOidcUserService;
@@ -58,7 +62,8 @@ public class ApplicationSecurity {
 	@Order(2)
 	public SecurityFilterChain appSecurityFilterChain(
 			HttpSecurity http,
-			Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter) throws Exception {
+			Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter,
+			ClientRegistrationRepository clientRegistrationRepository) throws Exception {
 
 		http
 				// Ekskluder H2 fra hovedkjeden (ikke strengt nødvendig, men ryddig)
@@ -72,6 +77,13 @@ public class ApplicationSecurity {
 						.anyRequest().authenticated())
 				.oauth2Login(oauth2 -> oauth2
 						.userInfoEndpoint(userInfo -> userInfo.oidcUserService(keycloakOidcUserService)))
+				.logout(logout -> logout
+						.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))
+						.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository))
+						.invalidateHttpSession(true)
+						.clearAuthentication(true)
+						.deleteCookies("JSESSIONID")
+						.permitAll())
 				.oauth2ResourceServer(
 						oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 
@@ -81,5 +93,12 @@ public class ApplicationSecurity {
 	@Bean
 	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
 		return new UserPrincipalJwtAuthenticationConverter(keycloakClientId);
+	}
+
+	private LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
+		OidcClientInitiatedLogoutSuccessHandler handler = new OidcClientInitiatedLogoutSuccessHandler(
+				clientRegistrationRepository);
+		handler.setPostLogoutRedirectUri("{baseUrl}/");
+		return handler;
 	}
 }
