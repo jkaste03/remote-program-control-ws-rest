@@ -2,6 +2,7 @@ package com.github.jkaste03.security;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,7 +24,7 @@ import org.springframework.lang.NonNull;
 
 public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private static final Logger log = LoggerFactory.getLogger(SseService.class);
+    private static final Logger log = LoggerFactory.getLogger(UserPrincipalJwtAuthenticationConverter.class);
     private static final String INVALID_TOKEN_MESSAGE_KEY = "problem.auth.invalid-token";
 
     private static final String EMAIL_CLAIM = "email";
@@ -63,7 +64,10 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         Collection<GrantedAuthority> authorities = extractKeycloakClientRoles(jwt, keycloakClientId);
 
         // 3. Lag UserPrincipal (lettvekts, ingen DB-kall)
-        var principal = new UserPrincipal(userId, email, username);
+        // Oppdatering: Vi sender med authorities også her, slik at
+        // principal.getAuthorities() stemmer overens med
+        // authentication.getAuthorities()
+        var principal = new UserPrincipal(userId, email, username, authorities, Collections.emptyMap(), null, null);
 
         return new UsernamePasswordAuthenticationToken(principal, jwt, authorities);
     }

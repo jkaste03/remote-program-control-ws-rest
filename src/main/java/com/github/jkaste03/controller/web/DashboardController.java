@@ -1,6 +1,8 @@
 package com.github.jkaste03.controller.web;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,9 +21,12 @@ public class DashboardController {
     }
 
     @GetMapping("/")
-    public String index(@AuthenticationPrincipal UserPrincipal user, Model model) {
-        if (user != null && user.getIdToken() != null) {
-            model.addAttribute("accessToken", user.getIdToken().getTokenValue());
+    public String index(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient authorizedClient,
+            Model model) {
+        if (user != null && authorizedClient != null) {
+            model.addAttribute("accessToken", authorizedClient.getAccessToken().getTokenValue());
         }
         return "index";
     }
