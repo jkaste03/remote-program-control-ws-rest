@@ -82,9 +82,14 @@ public class SseService {
     @TransactionalEventListener
     public void handleDeviceStatusChanged(DeviceStatusChangedEvent event) {
         Device device = event.getDevice();
-        broadcastToDashboards("DEVICE_STATUS", Map.of(
-                "deviceId", device.getId(),
-                "status", device.getStatus()));
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("deviceId", device.getId());
+        payload.put("status", device.getStatus());
+        if (device.getLastSeen() != null) {
+            payload.put("lastSeen", device.getLastSeen().toString());
+        }
+
+        broadcastToDashboards("DEVICE_STATUS", payload);
     }
 
     @TransactionalEventListener

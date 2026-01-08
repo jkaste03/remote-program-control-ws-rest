@@ -119,7 +119,11 @@ function renderDevices(devices) {
                     <div>
                         <p class="eyebrow">Owner: ${device.username ?? "Unknown"}</p>
                         <h2 class="device-name">${device.name}</h2>
-                        <p class="meta">Last seen: ${formatDate(device.lastSeen)}</p>
+                        ${
+                            device.status === "ONLINE"
+                                ? ""
+                                : `<p class="meta">Last seen: ${formatDate(device.lastSeen)}</p>`
+                        }
                     </div>
                     <span class="status-chip status-${device.status}" id="device-status-${device.id}">
                         ${device.status}
@@ -179,7 +183,6 @@ function renderPrograms(programs, deviceId) {
                 <div class="program-row" data-program-id="${program.id}" data-device-id="${deviceId}">
                     <div class="program-info">
                         <p class="program-name">${program.name}</p>
-                        <p class="program-meta">${program.filename ?? ""}</p>
                         <p class="program-meta">Status: <span id="program-status-${program.id}">${status}</span></p>
                     </div>
                     <div class="actions">
@@ -290,11 +293,32 @@ function showToast(message, variant = "info") {
     }, 2600);
 }
 
-function updateDeviceStatus(deviceId, status) {
+function updateDeviceStatus(deviceId, status, lastSeen) {
     const badge = document.getElementById(`device-status-${deviceId}`);
     if (badge) {
         badge.textContent = status;
         badge.className = `status-chip status-${status}`;
+    }
+
+    const card = document.querySelector(`.device-card[data-device-id="${deviceId}"]`);
+    if (!card) return;
+
+    const headerCtx = card.querySelector(".card-header > div");
+    if (!headerCtx) return;
+
+    let metaEl = headerCtx.querySelector(".meta");
+    if (status === "ONLINE") {
+        if (metaEl) metaEl.remove();
+    } else if (lastSeen) {
+        const text = `Last seen: ${formatDate(lastSeen)}`;
+        if (metaEl) {
+            metaEl.textContent = text;
+        } else {
+            metaEl = document.createElement("p");
+            metaEl.className = "meta";
+            metaEl.textContent = text;
+            headerCtx.appendChild(metaEl);
+        }
     }
 }
 
@@ -323,7 +347,7 @@ function initSse() {
     es.addEventListener("DEVICE_STATUS", (evt) => {
         try {
             const data = JSON.parse(evt.data);
-            updateDeviceStatus(data.deviceId, data.status);
+            updateDeviceStatus(data.deviceId, data.status, data.lastSeen);
         } catch (error) {
             console.error("Kunne ikke parse DEVICE_STATUS", error);
         }

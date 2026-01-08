@@ -282,7 +282,7 @@ public class DeviceService {
     public void updateDeviceStatus(long deviceId, Device.Status status) {
         deviceRepository.findById(deviceId).ifPresent(device -> {
             device.setStatus(status);
-            if (status == Device.Status.ONLINE) {
+            if (status == Device.Status.OFFLINE) {
                 device.markSeen(Instant.now());
             }
             Device savedDevice = deviceRepository.save(device);
