@@ -290,7 +290,7 @@ function showToast(message, variant = "info") {
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => {
         toastEl.classList.add("toast-hidden");
-    }, 2600);
+    }, 2600); // TODO: Set longer duration (possibly based on message length/variant)
 }
 
 function updateDeviceStatus(deviceId, status, lastSeen) {
@@ -336,6 +336,12 @@ function updateProgramStatus(programId, status) {
         if (button) {
             button.textContent = action === "start" ? "Start" : action === "stop" ? "Stop" : "Busy";
             button.dataset.programAction = action ?? "";
+
+            // Update href based on action to ensure the correct endpoint is called
+            if (action) {
+                button.dataset.href = `${PROGRAMS_URL}/${programId}/${action}`;
+            }
+
             button.disabled = !action || busy;
         }
     }
