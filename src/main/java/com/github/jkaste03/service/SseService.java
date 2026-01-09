@@ -6,6 +6,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +23,8 @@ import com.github.jkaste03.event.DeviceStatusChangedEvent;
 import com.github.jkaste03.event.ProgramStatusChangedEvent;
 import com.github.jkaste03.model.Device;
 import com.github.jkaste03.model.Program;
+import com.github.jkaste03.repository.DeviceRepository;
+import com.github.jkaste03.repository.ProgramRepository;
 
 @Service
 public class SseService {
@@ -28,6 +33,7 @@ public class SseService {
 
     private static final long WAIT_TIMEOUT_SECONDS = 45;
     private static final int MAX_ATTEMPTS = 2;
+    private static final long SHUTDOWN_DELAY_SECONDS = 30;
 
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
     private final Map<String, SseEmitter> dashboardEmitters = new ConcurrentHashMap<>();
@@ -36,10 +42,14 @@ public class SseService {
 
     private final WakeOnLanService wolService;
     private final DeviceService deviceService;
+    private final ProgramRepository programRepository;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-    public SseService(WakeOnLanService wolService, DeviceService deviceService) {
+    public SseService(WakeOnLanService wolService, DeviceService deviceService,
+            ProgramRepository programRepository) {
         this.wolService = wolService;
         this.deviceService = deviceService;
+        this.programRepository = programRepository;
     }
 
     public void addEmitter(long deviceId, SseEmitter emitter) {
@@ -99,6 +109,41 @@ public class SseService {
                 "programId", program.getId(),
                 "deviceId", program.getDevice().getId(),
                 "status", program.getStatus()));
+
+        // Sjekk om vi skal initiere shutdown
+        if (program.getStatus() == Program.Status.STOPPED) {
+            checkAndScheduleShutdown(program.getDevice().getId());
+        }
+    }
+
+    private void checkAndScheduleShutdown(Long deviceId) {
+        scheduler.schedule(() -> {
+            try {
+                // 1. Sjekk om enheten fortsatt er ONLINE
+                if (!emitters.containsKey(deviceId)) {
+                    log.info("Device {} is offline, skipping shutdown check.", deviceId);
+                    return;
+                }
+
+                // 2. Sjekk om ALLE programmer er STOPPED
+                // Vi bruker repository direkte for å unngå potensiell transaksjonstrøbbel fra DeviceService
+                // i en asynkron tråd. readOnly=true på repos er default nok her.
+                boolean anyRunning = programRepository.findAllByDeviceId(deviceId).stream()
+                        .anyMatch(p -> p.getStatus() == Program.Status.STARTED
+                                || p.getStatus() == Program.Status.TRYING_TO_START
+                                || p.getStatus() == Program.Status.TRYING_TO_STOP); 
+
+                if (!anyRunning) {
+                    SseEmitter emitter = emitters.get(deviceId);
+                    if (emitter != null) {
+                        log.info("All programs stopped for device {}. Sending SHUTDOWN command.", deviceId);
+                        sendToEmitter(deviceId, emitter, SseEvent.SHUTDOWN, "{}");
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error during shutdown check/execution for device " + deviceId, e);
+            }
+        }, SHUTDOWN_DELAY_SECONDS, TimeUnit.SECONDS);
     }
 
     private void broadcastToDashboards(String eventName, Object data) {
