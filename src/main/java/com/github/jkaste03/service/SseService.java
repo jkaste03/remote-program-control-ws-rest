@@ -126,12 +126,13 @@ public class SseService {
                 }
 
                 // 2. Sjekk om ALLE programmer er STOPPED
-                // Vi bruker repository direkte for å unngå potensiell transaksjonstrøbbel fra DeviceService
+                // Vi bruker repository direkte for å unngå potensiell transaksjonstrøbbel fra
+                // DeviceService
                 // i en asynkron tråd. readOnly=true på repos er default nok her.
                 boolean anyRunning = programRepository.findAllByDeviceId(deviceId).stream()
                         .anyMatch(p -> p.getStatus() == Program.Status.STARTED
                                 || p.getStatus() == Program.Status.TRYING_TO_START
-                                || p.getStatus() == Program.Status.TRYING_TO_STOP); 
+                                || p.getStatus() == Program.Status.TRYING_TO_STOP);
 
                 if (!anyRunning) {
                     SseEmitter emitter = emitters.get(deviceId);
