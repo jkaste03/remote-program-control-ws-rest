@@ -88,7 +88,6 @@ public class SseService {
         emitter.onError(e -> remove.run());
     }
 
-    // TODO: Consider @TransactionalEventListener if needed
     @TransactionalEventListener
     public void handleDeviceStatusChanged(DeviceStatusChangedEvent event) {
         Device device = event.getDevice();

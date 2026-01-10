@@ -1,0 +1,173 @@
+{
+    "realm": "DAT152",
+    "users": [
+        {
+            "id": "8bf0e66a-c661-44ab-8c8c-4c44c8899ab5",
+            "username": "service-account-dat152webssoapp",
+            "emailVerified": false,
+            "enabled": true,
+            "createdTimestamp": 1759843460568,
+            "totp": false,
+            "serviceAccountClientId": "dat152WebSSOApp",
+            "credentials": [],
+            "disableableCredentialTypes": [],
+            "requiredActions": [],
+            "realmRoles": ["default-roles-dat152"],
+            "clientRoles": {
+                "dat152WebSSOApp": ["uma_protection"]
+            },
+            "notBefore": 0,
+            "groups": []
+        },
+        {
+            "id": "1ba8ff98-22e2-4607-8972-4e851cd0f6ca",
+            "username": "user1",
+            "firstName": "User1_Firstname",
+            "lastName": "User1_Lastname",
+            "email": "user1@email.com",
+            "emailVerified": false,
+            "enabled": true,
+            "createdTimestamp": 1759312556634,
+            "totp": false,
+            "credentials": [
+                {
+                    "id": "c105cf33-1e3f-4959-9edf-0d3d43e737c4",
+                    "type": "password",
+                    "userLabel": "My password",
+                    "createdDate": 1759312807444,
+                    "secretData": "{\"value\":\"ZVc0jp0Q1sxw/xU2Yrlb2C8+W0SxynVjcJ09isNO+Z8=\",\"salt\":\"QO86pCTGbIMi8uYYa1djkQ==\",\"additionalParameters\":{}}",
+                    "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+                }
+            ],
+            "disableableCredentialTypes": [],
+            "requiredActions": [],
+            "realmRoles": ["default-roles-dat152"],
+            "clientRoles": {
+                "dat152oblig2": ["USER"],
+                "dat152WebSSOApp": ["USER"]
+            },
+            "clientConsents": [
+                {
+                    "clientId": "dat152WebSSOApp",
+                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "createdDate": 1759840856912,
+                    "lastUpdatedDate": 1759846666513
+                }
+            ],
+            "notBefore": 0,
+            "groups": []
+        },
+        {
+            "id": "e0622f60-3606-40f9-8326-665b778ed7ea",
+            "username": "user2",
+            "firstName": "User2_Firstname",
+            "lastName": "User2_Lastname",
+            "email": "user2@email.com",
+            "emailVerified": false,
+            "enabled": true,
+            "createdTimestamp": 1759312612808,
+            "totp": false,
+            "credentials": [
+                {
+                    "id": "45e2b59d-4647-4cff-9d03-a671710926ff",
+                    "type": "password",
+                    "userLabel": "My password",
+                    "createdDate": 1759312827270,
+                    "secretData": "{\"value\":\"iEFcdPTilLXb02WOA3YSXkOaMXHSaVxXx0n4AAxFoAI=\",\"salt\":\"DOuXPyJnZkA+Z30nDNTkJQ==\",\"additionalParameters\":{}}",
+                    "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+                }
+            ],
+            "disableableCredentialTypes": [],
+            "requiredActions": [],
+            "realmRoles": ["default-roles-dat152"],
+            "clientRoles": {
+                "dat152oblig2": ["ADMIN"],
+                "dat152WebSSOApp": ["ADMIN"]
+            },
+            "clientConsents": [
+                {
+                    "clientId": "dat152WebSSOApp",
+                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "createdDate": 1759863048237,
+                    "lastUpdatedDate": 1759863048246
+                }
+            ],
+            "notBefore": 0,
+            "groups": []
+        },
+        {
+            "id": "8a0d7313-adfa-4751-aa05-d8ce219e5568",
+            "username": "user3",
+            "firstName": "User3_Firstname",
+            "lastName": "User3_Lastname",
+            "email": "user3@email.com",
+            "emailVerified": false,
+            "enabled": true,
+            "createdTimestamp": 1759538726409,
+            "totp": false,
+            "credentials": [
+                {
+                    "id": "07b5a227-056c-4009-80de-240f583b18f9",
+                    "type": "password",
+                    "userLabel": "My password",
+                    "createdDate": 1759566593030,
+                    "secretData": "{\"value\":\"SjI8t5V8Q1eusnl8xpFMZK1Gvx1V/ZE5m/cMi13VW50=\",\"salt\":\"WgKgjCp6GAUxmvqe1huMSw==\",\"additionalParameters\":{}}",
+                    "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+                }
+            ],
+            "disableableCredentialTypes": [],
+            "requiredActions": [],
+            "realmRoles": ["default-roles-dat152"],
+            "clientRoles": {
+                "dat152oblig2": ["USER"]
+            },
+            "clientConsents": [
+                {
+                    "clientId": "dat152WebSSOApp",
+                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "createdDate": 1759863344287,
+                    "lastUpdatedDate": 1759863344300
+                }
+            ],
+            "notBefore": 0,
+            "groups": []
+        },
+        {
+            "id": "789ee020-e0e7-45de-aa08-ff4b3ddc398f",
+            "username": "user4",
+            "firstName": "User4_Firstname",
+            "lastName": "User4_Lastname",
+            "email": "user4@email.com",
+            "emailVerified": false,
+            "enabled": true,
+            "createdTimestamp": 1759571322857,
+            "totp": false,
+            "credentials": [
+                {
+                    "id": "db68c101-1024-465d-9cf6-f72523b5c0e9",
+                    "type": "password",
+                    "userLabel": "My password",
+                    "createdDate": 1759571351658,
+                    "secretData": "{\"value\":\"sk7qlUObSZtFmD4nlb1cOGiXI3Sc3U57ISs30EkhOEo=\",\"salt\":\"zepVfmQ6sl/XwQZCUoCI2g==\",\"additionalParameters\":{}}",
+                    "credentialData": "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
+                }
+            ],
+            "disableableCredentialTypes": [],
+            "requiredActions": [],
+            "realmRoles": ["default-roles-dat152"],
+            "clientRoles": {
+                "dat152oblig2": ["USER"]
+            },
+            "clientConsents": [
+                {
+                    "clientId": "dat152WebSSOApp",
+                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "createdDate": 1759871891696,
+                    "lastUpdatedDate": 1759871891747
+                }
+            ],
+            "notBefore": 0,
+            "groups": []
+        }
+    ]
+}

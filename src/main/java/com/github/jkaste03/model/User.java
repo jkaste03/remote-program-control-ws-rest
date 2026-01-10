@@ -23,10 +23,10 @@ public class User {
 	@Column(name = "id", length = 36) // UUID har 36 tegn
 	private UUID id;
 
-	@Column(nullable = false, length = 120, unique = true)
+	@Column(nullable = false, length = 255, unique = true)
 	private String email;
 
-	@Column(nullable = false, length = 80, unique = true)
+	@Column(nullable = false, length = 255, unique = true)
 	private String username;
 
 	// @Column(nullable = false, length = 64)
