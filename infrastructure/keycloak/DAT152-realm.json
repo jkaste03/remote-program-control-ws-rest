@@ -1517,6 +1517,19 @@
     "identityProviders": [],
     "identityProviderMappers": [],
     "components": {
+        "org.keycloak.userprofile.UserProfileProvider": [
+            {
+                "id": "c1f72740-4c3e-436f-8dc3-339241b71120",
+                "name": "declarative-user-profile",
+                "providerId": "declarative-user-profile",
+                "subComponents": {},
+                "config": {
+                    "kc.user.profile.config": [
+                        "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}}]}"
+                    ]
+                }
+            }
+        ],
         "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy": [
             {
                 "id": "334dd2a7-9c13-4e73-81cb-ce861a38f5c0",
@@ -2512,6 +2525,7 @@
     "dockerAuthenticationFlow": "docker auth",
     "firstBrokerLoginFlow": "first broker login",
     "attributes": {
+        "userProfileEnabled": "true",
         "cibaBackchannelTokenDeliveryMode": "poll",
         "cibaAuthRequestedUserHint": "login_hint",
         "oauth2DevicePollingInterval": "5",
