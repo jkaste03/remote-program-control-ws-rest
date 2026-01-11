@@ -18,7 +18,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.github.jkaste03.exceptions.InvalidTokenException;
-import com.github.jkaste03.service.SseService;
 
 import org.springframework.lang.NonNull;
 
@@ -32,9 +31,12 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
 
     // Navnet på klienten i Keycloak som inneholder rollene (fra JSON-en din)
     private final String keycloakClientId;
+    private final UserProvisioningService userProvisioningService;
 
-    public UserPrincipalJwtAuthenticationConverter(String keycloakClientId) {
+    public UserPrincipalJwtAuthenticationConverter(String keycloakClientId,
+            UserProvisioningService userProvisioningService) {
         this.keycloakClientId = keycloakClientId;
+        this.userProvisioningService = userProvisioningService;
     }
 
     @Override
@@ -68,6 +70,9 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         // principal.getAuthorities() stemmer overens med
         // authentication.getAuthorities()
         var principal = new UserPrincipal(userId, email, username, authorities, Collections.emptyMap(), null, null);
+
+        // Sørg for at bruker finnes i DB (for API-kall)
+        userProvisioningService.getOrCreateUser(principal);
 
         return new UsernamePasswordAuthenticationToken(principal, jwt, authorities);
     }

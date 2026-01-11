@@ -2,24 +2,6 @@
     "realm": "DAT152",
     "users": [
         {
-            "id": "8bf0e66a-c661-44ab-8c8c-4c44c8899ab5",
-            "username": "service-account-dat152webssoapp",
-            "emailVerified": false,
-            "enabled": true,
-            "createdTimestamp": 1759843460568,
-            "totp": false,
-            "serviceAccountClientId": "dat152WebSSOApp",
-            "credentials": [],
-            "disableableCredentialTypes": [],
-            "requiredActions": [],
-            "realmRoles": ["default-roles-dat152"],
-            "clientRoles": {
-                "dat152WebSSOApp": ["uma_protection"]
-            },
-            "notBefore": 0,
-            "groups": []
-        },
-        {
             "id": "1ba8ff98-22e2-4607-8972-4e851cd0f6ca",
             "username": "user1",
             "firstName": "User1_Firstname",

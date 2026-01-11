@@ -17,15 +17,19 @@ import org.springframework.stereotype.Service;
 
 import com.github.jkaste03.security.AppRoles;
 import com.github.jkaste03.security.UserPrincipal;
+import com.github.jkaste03.security.UserProvisioningService;
 
 @Service
 public class KeycloakOidcUserService extends OidcUserService {
 
     private final String keycloakClientId;
+    private final UserProvisioningService userProvisioningService;
 
     public KeycloakOidcUserService(
-            @org.springframework.beans.factory.annotation.Value("${app.keycloak.client-id}") String keycloakClientId) {
+            @org.springframework.beans.factory.annotation.Value("${app.keycloak.client-id}") String keycloakClientId,
+            UserProvisioningService userProvisioningService) {
         this.keycloakClientId = keycloakClientId;
+        this.userProvisioningService = userProvisioningService;
     }
 
     @Override
@@ -43,8 +47,14 @@ public class KeycloakOidcUserService extends OidcUserService {
 
         Collection<GrantedAuthority> authorities = extractKeycloakClientRoles(oidcUser.getClaims(), keycloakClientId);
 
-        return new UserPrincipal(userId, email, username, authorities, oidcUser.getAttributes(), oidcUser.getIdToken(),
+        UserPrincipal principal = new UserPrincipal(userId, email, username, authorities, oidcUser.getAttributes(),
+                oidcUser.getIdToken(),
                 oidcUser.getUserInfo());
+
+        // Ensure user exists in local database
+        userProvisioningService.getOrCreateUser(principal);
+
+        return principal;
     }
 
     @SuppressWarnings("unchecked")

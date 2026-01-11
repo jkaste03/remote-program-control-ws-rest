@@ -91,8 +91,9 @@ public class ApplicationSecurity {
 	}
 
 	@Bean
-	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
-		return new UserPrincipalJwtAuthenticationConverter(keycloakClientId);
+	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter(
+			UserProvisioningService userProvisioningService) {
+		return new UserPrincipalJwtAuthenticationConverter(keycloakClientId, userProvisioningService);
 	}
 
 	private LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
