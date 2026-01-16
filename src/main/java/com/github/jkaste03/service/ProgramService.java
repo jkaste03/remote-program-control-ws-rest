@@ -2,7 +2,9 @@ package com.github.jkaste03.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,12 +81,17 @@ public class ProgramService {
         program.setFilename(updateRequest.filename());
         program.setPublic(updateRequest.isPublic());
 
-        // Sjekk allowedUserIds
-        if (!updateRequest.allowedUserIds().isEmpty()) {
-            List<User> foundUsers = userRepository.findAllById(updateRequest.allowedUserIds());
+        // Sjekk allowedUserIds (ekskluder eier for å hindre at man legger til seg selv)
+        Set<UUID> allowedIds = updateRequest.allowedUserIds()
+                .stream()
+                .filter(u_id -> !userId.equals(u_id))
+                .collect(Collectors.toSet());
+
+        if (!allowedIds.isEmpty()) {
+            List<User> foundUsers = userRepository.findAllById(allowedIds);
 
             // SJEKK: Fant vi like mange brukere som vi spurte etter?
-            if (foundUsers.size() != updateRequest.allowedUserIds().size()) {
+            if (foundUsers.size() != allowedIds.size()) {
                 // Alternativ A: Kast exception (Anbefalt)
                 // Du kan lage en ny melding i messages.properties for dette, f.eks:
                 // problem.not-found.users=One or more user IDs were not found.

@@ -72,7 +72,6 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
 
         // Privat admin-verktøy (tillat bare adminbrukeren fra Keycloak)
         Program adminTool = new Program("AdminTool", false);
-        adminTool.allow(u2);
 
         // Knyt programmer
         userPc.addProgram(calc);

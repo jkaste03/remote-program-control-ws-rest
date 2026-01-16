@@ -244,10 +244,8 @@ async function handleProgramAction(programId, rel, href, button) {
 }
 
 async function handleProgramUpdate(programId, href, button) {
-    const target = normalizeHref(href);
-    if (target) {
-        window.location.href = target;
-    }
+    const target = `/programs/${programId}/edit`;
+    window.location.href = target;
 }
 
 async function handleDeviceAction(deviceId, action, href, button) {

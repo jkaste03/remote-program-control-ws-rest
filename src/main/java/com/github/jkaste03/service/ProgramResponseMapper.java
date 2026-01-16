@@ -1,6 +1,7 @@
 package com.github.jkaste03.service;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -22,10 +23,15 @@ public class ProgramResponseMapper {
 
     private @NonNull ProgramResponse toResponse(Program program, boolean includeAllowedUsers) {
         List<String> allowedUsers = List.of();
+        List<UUID> allowedUserIds = List.of();
         if (includeAllowedUsers) {
             allowedUsers = program.getAllowedUsers()
                     .stream()
                     .map(User::getUsername)
+                    .toList();
+            allowedUserIds = program.getAllowedUsers()
+                    .stream()
+                    .map(User::getId)
                     .toList();
         }
 
@@ -36,6 +42,7 @@ public class ProgramResponseMapper {
                 program.isPublic(),
                 program.getStatus(),
                 program.getDevice().getOwner().getId(),
-                allowedUsers);
+                allowedUsers,
+                allowedUserIds);
     }
 }

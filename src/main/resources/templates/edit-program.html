@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Edit Program - Remote Program Control</title>
+        <meta name="access-token" th:content="${accessToken}" content="" />
+        <meta name="program-id" th:content="${programId}" content="" />
+        <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css" />
+        <style>
+            .form-container {
+                max-width: 700px;
+                margin: 2rem auto;
+                background: white;
+                padding: 2rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 0.4rem;
+                font-weight: 600;
+            }
+            .form-group input[type="text"],
+            .form-group input[type="number"] {
+                width: 100%;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid #d3d3d3;
+                border-radius: 6px;
+                font-size: 1rem;
+            }
+            .form-group input:read-only {
+                background: #f5f5f5;
+                cursor: not-allowed;
+            }
+            .form-row {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
+            .button-group {
+                display: flex;
+                gap: 1rem;
+                justify-content: flex-end;
+                margin-top: 2rem;
+            }
+            .btn {
+                padding: 0.65rem 1rem;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 1rem;
+                text-decoration: none;
+            }
+            .btn-primary {
+                background-color: #0a6cf1;
+                color: white;
+            }
+            .btn-secondary {
+                background-color: #6c757d;
+                color: white;
+            }
+            .btn:hover {
+                opacity: 0.95;
+            }
+            .toggle-line {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            .chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                padding: 0.35rem 0.65rem;
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+                border-radius: 999px;
+                font-size: 0.9rem;
+            }
+            .chip button {
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1;
+            }
+            .chip-container {
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                margin-top: 0.35rem;
+            }
+            .user-search {
+                display: flex;
+                gap: 0.5rem;
+                margin-top: 0.75rem;
+            }
+            .user-search input {
+                flex: 1;
+                padding: 0.5rem 0.75rem;
+                border: 1px solid #d3d3d3;
+                border-radius: 6px;
+            }
+            .user-search button {
+                padding: 0.5rem 0.9rem;
+                border: none;
+                background: #0a6cf1;
+                color: white;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+            .search-results {
+                margin-top: 0.75rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                padding: 0.5rem;
+                background: #f8fafc;
+            }
+            .search-results .result-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.35rem 0;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            .search-results .result-row:last-child {
+                border-bottom: none;
+            }
+            .search-results .result-row button {
+                padding: 0.35rem 0.7rem;
+                border-radius: 6px;
+                border: 1px solid #0a6cf1;
+                color: #0a6cf1;
+                background: white;
+                cursor: pointer;
+            }
+            .hidden {
+                display: none;
+            }
+            small {
+                color: #6b7280;
+                display: block;
+                margin-top: 0.3rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="page">
+            <header class="top-bar">
+                <div>
+                    <p class="eyebrow">Remote Program Control</p>
+                    <h1>Edit Program</h1>
+                </div>
+                <div class="user-box">
+                    <span class="user-name" th:text="${#authentication.name}">User</span>
+                    <a class="logout" href="/logout">Logout</a>
+                </div>
+            </header>
+
+            <div id="toast" class="toast toast-hidden" role="status"></div>
+
+            <div class="form-container">
+                <form id="edit-program-form">
+                    <div class="form-group">
+                        <label for="filename">Filename</label>
+                        <input type="text" id="filename" name="filename" readonly />
+                        <small>Filename cannot be changed here.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="name">Program name</label>
+                        <input type="text" id="name" name="name" required maxlength="255" />
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-line">
+                            <input type="checkbox" id="isPublic" name="isPublic" />
+                            <label for="isPublic" style="margin: 0">Public program</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group hidden" id="allowed-users-section">
+                        <label for="userSearch">Allowed users</label>
+                        <small>Select which users can access this program.</small>
+                        <div class="chip-container" id="selected-users"></div>
+
+                        <div class="user-search">
+                            <input
+                                type="text"
+                                id="userSearch"
+                                name="userSearch"
+                                placeholder="Search by username or email"
+                                autocomplete="off"
+                            />
+                            <button type="button" id="userSearchBtn">Search</button>
+                        </div>
+                        <div class="search-results hidden" id="user-search-results"></div>
+                    </div>
+
+                    <div class="button-group">
+                        <a href="/" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            /*<![CDATA[*/
+            window.__ACCESS_TOKEN__ = /*[[${accessToken}]]*/ null;
+            /*]]>*/
+        </script>
+        <script type="module" th:src="@{/js/edit-program.js}" src="/js/edit-program.js"></script>
+    </body>
+</html>
