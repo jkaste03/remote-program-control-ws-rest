@@ -50,8 +50,17 @@ form.addEventListener("submit", async (e) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || "Failed to update device");
+            let errorMessage = "Failed to update device";
+            try {
+                const errorData = await response.json();
+                const validationError = Array.isArray(errorData.errors) && errorData.errors.length > 0
+                    ? errorData.errors[0].message
+                    : null;
+                errorMessage = validationError || errorData.detail || errorMessage;
+            } catch (parseError) {
+                console.error("Failed to parse error response", parseError);
+            }
+            throw new Error(errorMessage);
         }
 
         showToast("Device updated successfully!", "success");

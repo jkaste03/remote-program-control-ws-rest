@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.lang.NonNull;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class ValidationExceptionHandler {
     private static final @NonNull URI VALIDATION_PROBLEM_TYPE = Objects
             .requireNonNull(URI.create("urn:problem-type:validation-error"));
