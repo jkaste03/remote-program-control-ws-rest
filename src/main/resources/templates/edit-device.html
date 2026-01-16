@@ -79,15 +79,11 @@
 
             <div class="form-container">
                 <form id="edit-device-form">
+                    <input type="hidden" id="publicIp" name="publicIp" />
+
                     <div class="form-group">
                         <label for="name">Device Name</label>
                         <input type="text" id="name" name="name" required maxlength="100" />
-                    </div>
-
-                    <div class="form-group">
-                        <label for="publicIp">Public IP (Ready Only)</label>
-                        <input type="text" id="publicIp" name="publicIp" readonly required />
-                        <small style="color: #666">Public IP cannot be changed manually.</small>
                     </div>
 
                     <div class="form-group">
@@ -102,9 +98,10 @@
                             id="macAddress"
                             name="macAddress"
                             required
-                            pattern="^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
+                            pattern="^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$"
+                            title="MAC must use the format 00:11:22:33:44:55"
                         />
-                        <small style="color: #666">Format: XX:XX:XX:XX:XX:XX</small>
+                        <small style="color: #666">Format: 00:11:22:33:44:55</small>
                     </div>
 
                     <div class="button-group">

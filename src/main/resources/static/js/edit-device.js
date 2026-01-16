@@ -32,6 +32,10 @@ async function fetchDeviceDetails() {
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    if (!form.reportValidity()) {
+        return;
+    }
+
     const formData = {
         name: document.getElementById("name").value,
         publicIp: document.getElementById("publicIp").value,
