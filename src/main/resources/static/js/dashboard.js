@@ -255,7 +255,8 @@ async function handleDeviceAction(deviceId, action, href, button) {
     const target = normalizeHref(href) || `${DEVICES_URL}/${deviceId}`;
 
     if (action === "update") {
-        window.location.href = target;
+        // Navigate to the edit page instead of the API endpoint
+        window.location.href = `/devices/${deviceId}/edit`;
         return;
     }
 
