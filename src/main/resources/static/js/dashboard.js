@@ -1,3 +1,8 @@
+import { t, i18nReady, applyTranslations } from "./i18n.js";
+
+await i18nReady;
+applyTranslations();
+
 const API_ROOT = "/remote-program-control/api/v1";
 const DEVICES_URL = `${API_ROOT}/devices`;
 const PROGRAMS_URL = `${API_ROOT}/programs`;
@@ -60,7 +65,7 @@ async function toProblem(response) {
 
     const problem = typeof body === "object" && body !== null ? body : { detail: body };
     problem.status = problem.status || response.status;
-    problem.title = problem.title || response.statusText || "Unknown error";
+    problem.title = problem.title || response.statusText || t("common.unknownError");
 
     const err = new Error(formatProblem(problem));
     err.problem = problem;
@@ -76,8 +81,8 @@ async function fetchJson(url, options) {
 }
 
 function formatProblem(problem) {
-    if (!problem) return "Something went wrong";
-    const title = problem.title || "Error";
+    if (!problem) return t("common.genericError");
+    const title = problem.title || t("common.error");
     const detail = problem.detail || problem.message || "";
     const status = problem.status ? ` (${problem.status})` : "";
     const code = problem.code ? ` [${problem.code}]` : "";
@@ -85,9 +90,9 @@ function formatProblem(problem) {
 }
 
 function formatDate(value) {
-    if (!value) return "Unknown";
+    if (!value) return t("common.unknown");
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "Unknown";
+    if (Number.isNaN(date.getTime())) return t("common.unknown");
     return date.toLocaleString();
 }
 
@@ -104,7 +109,7 @@ function renderDevices(devices) {
     programState.clear();
 
     if (!Array.isArray(devices) || devices.length === 0) {
-        deviceContainer.innerHTML = '<div class="empty-state">No devices available yet.</div>';
+        deviceContainer.innerHTML = `<div class="empty-state">${t("dashboard.noDevices")}</div>`;
         return;
     }
 
@@ -117,12 +122,12 @@ function renderDevices(devices) {
             <article class="card device-card" data-device-id="${device.id}">
                 <div class="card-header">
                     <div>
-                        <p class="eyebrow">Owner: ${device.username ?? "Unknown"}</p>
+                        <p class="eyebrow">${t("dashboard.owner")}: ${device.username ?? t("common.unknown")}</p>
                         <h2 class="device-name">${device.name}</h2>
                         ${
                             device.status === "ONLINE"
                                 ? ""
-                                : `<p class="meta">Last seen: ${formatDate(device.lastSeen)}</p>`
+                                : `<p class="meta">${t("dashboard.lastSeen")}: ${formatDate(device.lastSeen)}</p>`
                         }
                     </div>
                     <span class="status-chip status-${device.status}" id="device-status-${device.id}">
@@ -149,12 +154,12 @@ function renderDeviceActions(device) {
         <div class="card-actions">
             ${
                 updateLink
-                    ? `<button class="btn" data-device-action="update" data-device-id="${device.id}" data-href="${updateLink}">Update device</button>`
+                    ? `<button class="btn" data-device-action="update" data-device-id="${device.id}" data-href="${updateLink}">${t("dashboard.device.update")}</button>`
                     : ""
             }
             ${
                 deleteLink
-                    ? `<button class="btn btn-danger" data-device-action="delete" data-device-id="${device.id}" data-href="${deleteLink}">Delete device</button>`
+                    ? `<button class="btn btn-danger" data-device-action="delete" data-device-id="${device.id}" data-href="${deleteLink}">${t("dashboard.device.delete")}</button>`
                     : ""
             }
         </div>
@@ -163,7 +168,7 @@ function renderDeviceActions(device) {
 
 function renderPrograms(programs, deviceId) {
     if (!Array.isArray(programs) || programs.length === 0) {
-        return '<div class="badge">No programs</div>';
+        return `<div class="badge">${t("dashboard.programs.none")}</div>`;
     }
 
     return programs
@@ -176,14 +181,18 @@ function renderPrograms(programs, deviceId) {
             const action = startLink ? "start" : stopLink ? "stop" : null;
             const actionHref = startLink || stopLink || "";
             const busy = status === "TRYING_TO_START" || status === "TRYING_TO_STOP";
-            const label = action === "start" ? "Start" : action === "stop" ? "Stop" : "Busy";
+            const label = action === "start"
+                ? t("dashboard.program.start")
+                : action === "stop"
+                    ? t("dashboard.program.stop")
+                    : t("dashboard.program.busy");
             const disabled = !action || busy ? "disabled" : "";
 
             return `
                 <div class="program-row" data-program-id="${program.id}" data-device-id="${deviceId}">
                     <div class="program-info">
                         <p class="program-name">${program.name}</p>
-                        <p class="program-meta">Status: <span id="program-status-${program.id}">${status}</span></p>
+                        <p class="program-meta">${t("dashboard.program.status")}: <span id="program-status-${program.id}">${status}</span></p>
                     </div>
                     <div class="actions">
                         <button class="btn btn-primary" data-program-action="${action ?? ""}" data-program-id="${
@@ -191,7 +200,7 @@ function renderPrograms(programs, deviceId) {
             }" data-href="${actionHref}" ${disabled}>${label}</button>
                         ${
                             updateLink
-                                ? `<button class="btn" data-program-action="update" data-program-id="${program.id}" data-href="${updateLink}">Update</button>`
+                                ? `<button class="btn" data-program-action="update" data-program-id="${program.id}" data-href="${updateLink}">${t("dashboard.program.update")}</button>`
                                 : ""
                         }
                     </div>
@@ -212,14 +221,15 @@ function extractProgramsFromDevice(device) {
 }
 
 async function loadDevices() {
-    deviceContainer.innerHTML = '<div class="loading">Loading devices...</div>';
+    deviceContainer.innerHTML = `<div class="loading">${t("dashboard.loading")}</div>`;
     try {
         const payload = await fetchJson(DEVICES_URL);
         const devices = extractDevices(payload);
         renderDevices(devices);
     } catch (error) {
-        deviceContainer.innerHTML = `<div class="empty-state">${error.message || "Could not fetch devices"}</div>`;
-        showToast(error.message || "Could not fetch devices", "error");
+        const message = error.message || t("dashboard.error.fetchDevices");
+        deviceContainer.innerHTML = `<div class="empty-state">${message}</div>`;
+        showToast(message, "error");
     }
 }
 
@@ -229,14 +239,14 @@ async function handleProgramAction(programId, rel, href, button) {
 
     try {
         if (rel !== "start" && rel !== "stop") {
-            throw new Error("Unknown action.");
+            throw new Error(t("dashboard.program.unknownAction"));
         }
 
         const link = normalizeHref(href) || `${PROGRAMS_URL}/${programId}/${rel}`;
         await fetchJson(link, { method: "POST" });
-        showToast(rel === "start" ? "Starting program..." : "Stopping program...");
+        showToast(rel === "start" ? t("dashboard.program.starting") : t("dashboard.program.stopping"));
     } catch (error) {
-        showToast(error.message || "Could not perform action", "error");
+        showToast(error.message || t("dashboard.program.actionError"), "error");
     } finally {
         button.disabled = false;
         delete button.dataset.loading;
@@ -259,7 +269,7 @@ async function handleDeviceAction(deviceId, action, href, button) {
     }
 
     if (action === "delete") {
-        const confirmed = confirm("Delete this device?");
+        const confirmed = confirm(t("dashboard.device.confirmDelete"));
         if (!confirmed) return;
 
         button.disabled = true;
@@ -268,10 +278,10 @@ async function handleDeviceAction(deviceId, action, href, button) {
             if (!response.ok) {
                 throw await toProblem(response);
             }
-            showToast("Device deleted");
+            showToast(t("dashboard.device.deleted"));
             await loadDevices();
         } catch (error) {
-            showToast(error.message || "Could not delete device", "error");
+            showToast(error.message || t("dashboard.device.deleteError"), "error");
         } finally {
             button.disabled = false;
         }
@@ -333,7 +343,11 @@ function updateProgramStatus(programId, status) {
         const action = status === "STOPPED" ? "start" : status === "STARTED" ? "stop" : null;
         const busy = status === "TRYING_TO_START" || status === "TRYING_TO_STOP";
         if (button) {
-            button.textContent = action === "start" ? "Start" : action === "stop" ? "Stop" : "Busy";
+            button.textContent = action === "start"
+                ? t("dashboard.program.start")
+                : action === "stop"
+                    ? t("dashboard.program.stop")
+                    : t("dashboard.program.busy");
             button.dataset.programAction = action ?? "";
 
             // Update href based on action to ensure the correct endpoint is called
@@ -368,7 +382,7 @@ function initSse() {
     });
 
     es.onerror = () => {
-        showToast("Lost SSE connection. Will retry on next reload.", "error");
+        showToast(t("dashboard.sse.lost"), "error");
     };
 }
 

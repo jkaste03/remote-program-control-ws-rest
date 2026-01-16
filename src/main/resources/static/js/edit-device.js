@@ -1,3 +1,8 @@
+import { t, i18nReady, applyTranslations } from "./i18n.js";
+
+await i18nReady;
+applyTranslations();
+
 const deviceId = document.querySelector('meta[name="device-id"]').content;
 const accessToken = document.querySelector('meta[name="access-token"]').content;
 
@@ -14,7 +19,7 @@ async function fetchDeviceDetails() {
         });
 
         if (!response.ok) {
-            throw new Error("Failed to fetch device details");
+            throw new Error(t("device.error.fetch"));
         }
 
         const device = await response.json();
@@ -24,7 +29,7 @@ async function fetchDeviceDetails() {
         document.getElementById("wakeOnLanPort").value = device.wakeOnLanPort;
         document.getElementById("macAddress").value = device.macAddress;
     } catch (error) {
-        showToast("Error loading device details: " + error.message, "error");
+        showToast(t("device.toast.loadError", { message: error.message }), "error");
     }
 }
 
@@ -54,7 +59,7 @@ form.addEventListener("submit", async (e) => {
         });
 
         if (!response.ok) {
-            let errorMessage = "Failed to update device";
+            let errorMessage = t("device.error.update");
             try {
                 const errorData = await response.json();
                 const validationError = Array.isArray(errorData.errors) && errorData.errors.length > 0
@@ -67,14 +72,14 @@ form.addEventListener("submit", async (e) => {
             throw new Error(errorMessage);
         }
 
-        showToast("Device updated successfully!", "success");
+        showToast(t("device.toast.updateSuccess"), "success");
 
         // Optional: Redirect back after delay
         setTimeout(() => {
             window.location.href = "/";
         }, 1500);
     } catch (error) {
-        showToast("Error updating device: " + error.message, "error");
+        showToast(t("device.toast.updateError", { message: error.message }), "error");
     }
 });
 

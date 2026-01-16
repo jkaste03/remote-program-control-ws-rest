@@ -1,22 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" th:attr="lang=${#locale}">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Remote Program Control</title>
+        <title data-i18n="dashboard.pageTitle">Remote Program Control</title>
         <meta name="access-token" th:content="${accessToken}" content="" />
+        <meta name="locale" th:content="${#locale}" content="en" />
         <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css" />
     </head>
     <body>
         <div class="page">
             <header class="top-bar">
                 <div>
-                    <p class="eyebrow">Remote Program Control</p>
-                    <h1>My devices</h1>
+                    <p class="eyebrow" data-i18n="app.title">Remote Program Control</p>
+                    <h1 data-i18n="dashboard.heading">My devices</h1>
                 </div>
                 <div class="user-box">
                     <span class="user-name" th:text="${#authentication.name}">User</span>
-                    <a class="logout" href="/logout">Logout</a>
+                    <a class="logout" href="/logout" data-i18n="common.logout">Logout</a>
                 </div>
             </header>
 

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" th:attr="lang=${#locale}">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Edit Device - Remote Program Control</title>
+        <title data-i18n="device.edit.pageTitle">Edit Device - Remote Program Control</title>
         <meta name="access-token" th:content="${accessToken}" content="" />
         <meta name="device-id" th:content="${deviceId}" content="" />
+        <meta name="locale" th:content="${#locale}" content="en" />
         <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css" />
         <style>
             .form-container {
@@ -66,12 +67,12 @@
         <div class="page">
             <header class="top-bar">
                 <div>
-                    <p class="eyebrow">Remote Program Control</p>
-                    <h1>Edit Device</h1>
+                    <p class="eyebrow" data-i18n="app.title">Remote Program Control</p>
+                    <h1 data-i18n="device.edit.heading">Edit Device</h1>
                 </div>
                 <div class="user-box">
                     <span class="user-name" th:text="${#authentication.name}">User</span>
-                    <a class="logout" href="/logout">Logout</a>
+                    <a class="logout" href="/logout" data-i18n="common.logout">Logout</a>
                 </div>
             </header>
 
@@ -82,17 +83,17 @@
                     <input type="hidden" id="publicIp" name="publicIp" />
 
                     <div class="form-group">
-                        <label for="name">Device Name</label>
+                        <label for="name" data-i18n="device.form.name.label">Device Name</label>
                         <input type="text" id="name" name="name" required maxlength="100" />
                     </div>
 
                     <div class="form-group">
-                        <label for="wakeOnLanPort">Wake On LAN Port</label>
+                        <label for="wakeOnLanPort" data-i18n="device.form.wolPort.label">Wake On LAN Port</label>
                         <input type="number" id="wakeOnLanPort" name="wakeOnLanPort" required min="1" max="65535" />
                     </div>
 
                     <div class="form-group">
-                        <label for="macAddress">MAC Address</label>
+                        <label for="macAddress" data-i18n="device.form.mac.label">MAC Address</label>
                         <input
                             type="text"
                             id="macAddress"
@@ -100,13 +101,15 @@
                             required
                             pattern="^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$"
                             title="MAC must use the format 00:11:22:33:44:55"
+                            data-i18n="device.form.mac.title"
+                            data-i18n-attr="title"
                         />
-                        <small style="color: #666">Format: 00:11:22:33:44:55</small>
+                        <small style="color: #666" data-i18n="device.form.mac.help">Format: 00:11:22:33:44:55</small>
                     </div>
 
                     <div class="button-group">
-                        <a href="/" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <a href="/" class="btn btn-secondary" data-i18n="common.cancel">Cancel</a>
+                        <button type="submit" class="btn btn-primary" data-i18n="common.saveChanges">Save Changes</button>
                     </div>
                 </form>
             </div>

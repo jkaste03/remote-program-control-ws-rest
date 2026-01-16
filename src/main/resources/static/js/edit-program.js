@@ -1,3 +1,8 @@
+import { t, i18nReady, applyTranslations } from "./i18n.js";
+
+await i18nReady;
+applyTranslations();
+
 const programId = document.querySelector('meta[name="program-id"]').content;
 const accessToken = document.querySelector('meta[name="access-token"]').content;
 
@@ -52,7 +57,7 @@ function renderSelectedUsers() {
     if (!selectedUsersEl) return;
 
     if (selectedUsers.size === 0) {
-        selectedUsersEl.innerHTML = '<span class="chip">No users selected</span>';
+        selectedUsersEl.innerHTML = `<span class="chip">${t("program.form.allowedUsers.none")}</span>`;
         return;
     }
 
@@ -61,7 +66,7 @@ function renderSelectedUsers() {
             (u) => `
             <span class="chip" data-user-id="${u.id}">
                 ${u.label}
-                <button type="button" aria-label="Remove ${u.label}" data-remove-user="${u.id}">&times;</button>
+                <button type="button" aria-label="${t("program.form.allowedUsers.remove", { user: u.label })}" data-remove-user="${u.id}">&times;</button>
             </span>
         `
         )
@@ -83,7 +88,7 @@ function renderSearchResults(users) {
     if (!searchResultsEl) return;
 
     if (!Array.isArray(users) || users.length === 0) {
-        searchResultsEl.innerHTML = "<div>No users found.</div>";
+        searchResultsEl.innerHTML = `<div>${t("program.search.noResults")}</div>`;
     } else {
         searchResultsEl.innerHTML = users
             .map((u) => {
@@ -99,7 +104,7 @@ function renderSearchResults(users) {
                         <button type="button" data-user-id="${u.id}" data-user-label="${labelEncoded}" ${
                     alreadySelected ? "disabled" : ""
                 }>
-                            ${alreadySelected ? "Added" : "Add"}
+                            ${alreadySelected ? t("program.search.added") : t("program.search.add")}
                         </button>
                     </div>
                 `;
@@ -113,7 +118,7 @@ function renderSearchResults(users) {
 async function searchUsers(query) {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-        searchResultsEl.innerHTML = "<div>Type at least 2 characters to search.</div>";
+        searchResultsEl.innerHTML = `<div>${t("program.search.tooShort")}</div>`;
         searchResultsEl.classList.remove("hidden");
         return;
     }
@@ -123,13 +128,13 @@ async function searchUsers(query) {
         const response = await authFetch(url);
         if (!response.ok) {
             const err = await response.text();
-            throw new Error(err || "Failed to search users");
+            throw new Error(err || t("program.search.failed"));
         }
         const users = await response.json();
         renderSearchResults(users);
     } catch (error) {
         console.error("Search failed", error);
-        showToast(error.message || "Could not search users", "error");
+        showToast(error.message || t("program.search.couldNotSearch"), "error");
     }
 }
 
@@ -148,7 +153,7 @@ async function fetchProgramDetails() {
         const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}`);
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(errText || "Failed to fetch program");
+            throw new Error(errText || t("program.error.fetch"));
         }
 
         const program = await response.json();
@@ -158,7 +163,7 @@ async function fetchProgramDetails() {
         toggleAllowedSection(program.isPublic);
         hydrateSelectedUsers(program);
     } catch (error) {
-        showToast("Error loading program: " + error.message, "error");
+        showToast(t("program.toast.loadError", { message: error.message }), "error");
     }
 }
 
@@ -185,7 +190,7 @@ form.addEventListener("submit", async (e) => {
         });
 
         if (!response.ok) {
-            let message = "Failed to update program";
+            let message = t("program.error.update");
             try {
                 const errorData = await response.json();
                 const validationError =
@@ -199,7 +204,7 @@ form.addEventListener("submit", async (e) => {
             throw new Error(message);
         }
 
-        showToast("Program updated successfully!", "success");
+        showToast(t("program.toast.updateSuccess"), "success");
         setTimeout(() => {
             window.location.href = "/";
         }, 1200);
@@ -232,7 +237,7 @@ searchResultsEl.addEventListener("click", (event) => {
     selectedUsers.set(id, { id, label });
     renderSelectedUsers();
     addBtn.disabled = true;
-    addBtn.textContent = "Added";
+    addBtn.textContent = t("program.search.added");
 });
 
 selectedUsersEl.addEventListener("click", (event) => {

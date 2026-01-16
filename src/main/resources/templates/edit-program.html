@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" th:attr="lang=${#locale}">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Edit Program - Remote Program Control</title>
+        <title data-i18n="program.edit.pageTitle">Edit Program - Remote Program Control</title>
         <meta name="access-token" th:content="${accessToken}" content="" />
         <meta name="program-id" th:content="${programId}" content="" />
+        <meta name="locale" th:content="${#locale}" content="en" />
         <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css" />
         <style>
             .form-container {
@@ -152,12 +153,12 @@
         <div class="page">
             <header class="top-bar">
                 <div>
-                    <p class="eyebrow">Remote Program Control</p>
-                    <h1>Edit Program</h1>
+                    <p class="eyebrow" data-i18n="app.title">Remote Program Control</p>
+                    <h1 data-i18n="program.edit.heading">Edit Program</h1>
                 </div>
                 <div class="user-box">
                     <span class="user-name" th:text="${#authentication.name}">User</span>
-                    <a class="logout" href="/logout">Logout</a>
+                    <a class="logout" href="/logout" data-i18n="common.logout">Logout</a>
                 </div>
             </header>
 
@@ -166,26 +167,27 @@
             <div class="form-container">
                 <form id="edit-program-form">
                     <div class="form-group">
-                        <label for="filename">Filename</label>
+                        <label for="filename" data-i18n="program.form.filename.label">Filename</label>
                         <input type="text" id="filename" name="filename" readonly />
-                        <small>Filename cannot be changed here.</small>
+                        <small data-i18n="program.form.filename.help">Filename cannot be changed here.</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="name">Program name</label>
+                        <label for="name" data-i18n="program.form.name.label">Program name</label>
                         <input type="text" id="name" name="name" required maxlength="255" />
                     </div>
 
                     <div class="form-group">
                         <div class="toggle-line">
                             <input type="checkbox" id="isPublic" name="isPublic" />
-                            <label for="isPublic" style="margin: 0">Public program</label>
+                            <label for="isPublic" style="margin: 0" data-i18n="program.form.public.label">Public program</label>
                         </div>
+                        <small data-i18n="program.form.public.help">Uncheck to restrict access to specific users.</small>
                     </div>
 
                     <div class="form-group hidden" id="allowed-users-section">
-                        <label for="userSearch">Allowed users</label>
-                        <small>Select which users can access this program.</small>
+                        <label for="userSearch" data-i18n="program.form.allowedUsers.label">Allowed users</label>
+                        <small data-i18n="program.form.allowedUsers.help">Select which users can access this program.</small>
                         <div class="chip-container" id="selected-users"></div>
 
                         <div class="user-search">
@@ -194,16 +196,18 @@
                                 id="userSearch"
                                 name="userSearch"
                                 placeholder="Search by username or email"
+                                data-i18n="program.search.placeholder"
+                                data-i18n-attr="placeholder"
                                 autocomplete="off"
                             />
-                            <button type="button" id="userSearchBtn">Search</button>
+                            <button type="button" id="userSearchBtn" data-i18n="program.form.search">Search</button>
                         </div>
                         <div class="search-results hidden" id="user-search-results"></div>
                     </div>
 
                     <div class="button-group">
-                        <a href="/" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <a href="/" class="btn btn-secondary" data-i18n="common.cancel">Cancel</a>
+                        <button type="submit" class="btn btn-primary" data-i18n="common.saveChanges">Save changes</button>
                     </div>
                 </form>
             </div>
