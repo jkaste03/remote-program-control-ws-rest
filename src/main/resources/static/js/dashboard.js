@@ -264,9 +264,7 @@ async function handleDeviceAction(deviceId, action, href, button) {
 function showToast(message, variant = "info") {
     if (!toastEl) return;
     toastEl.textContent = message;
-    toastEl.classList.remove("toast-hidden");
-    toastEl.style.borderColor = variant === "error" ? "rgba(239,68,68,0.7)" : "var(--border)";
-    toastEl.style.color = variant === "error" ? "#fecdd3" : "var(--text)";
+    toastEl.className = `toast ${variant === "error" ? "toast-error" : ""}`;
 
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => {
