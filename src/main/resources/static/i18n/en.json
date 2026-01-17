@@ -64,8 +64,6 @@
     "program.search.failed": "Failed to search users",
     "program.search.couldNotSearch": "Could not search users",
     "program.error.fetch": "Failed to fetch program",
-    "program.error.notFound": "Program not found.",
-    "program.toast.loadError": "Error loading program: {message}",
     "program.error.update": "Failed to update program",
     "program.toast.updateSuccess": "Program updated successfully!"
 }

@@ -1,4 +1,5 @@
 import { t, i18nReady, applyTranslations } from "./i18n.js";
+import { errorFromResponse } from "./problem.js";
 
 await i18nReady;
 applyTranslations();
@@ -50,43 +51,12 @@ function getLink(resource, rel) {
     return normalizeHref(typeof link === "string" ? link : link.href);
 }
 
-async function toProblem(response) {
-    const contentType = response.headers.get("content-type") || "";
-    let body;
-    if (contentType.includes("json")) {
-        try {
-            body = await response.json();
-        } catch (_) {
-            body = null;
-        }
-    } else {
-        body = await response.text();
-    }
-
-    const problem = typeof body === "object" && body !== null ? body : { detail: body };
-    problem.status = problem.status || response.status;
-    problem.title = problem.title || response.statusText || t("common.unknownError");
-
-    const err = new Error(formatProblem(problem));
-    err.problem = problem;
-    return err;
-}
-
-async function fetchJson(url, options) {
+async function fetchJson(url, options, fallbackMessage) {
     const response = await authFetch(url, options);
     if (!response.ok) {
-        throw await toProblem(response);
+        throw await errorFromResponse(response, fallbackMessage);
     }
     return response.json();
-}
-
-function formatProblem(problem) {
-    if (!problem) return t("common.genericError");
-    const title = problem.title || t("common.error");
-    const detail = problem.detail || problem.message || "";
-    const status = problem.status ? ` (${problem.status})` : "";
-    const code = problem.code ? ` [${problem.code}]` : "";
-    return `${title}${status}${code}${detail ? ": " + detail : ""}`;
 }
 
 function formatDate(value) {
@@ -223,7 +193,7 @@ function extractProgramsFromDevice(device) {
 async function loadDevices() {
     deviceContainer.innerHTML = `<div class="loading">${t("dashboard.loading")}</div>`;
     try {
-        const payload = await fetchJson(DEVICES_URL);
+        const payload = await fetchJson(DEVICES_URL, undefined, t("dashboard.error.fetchDevices"));
         const devices = extractDevices(payload);
         renderDevices(devices);
     } catch (error) {
@@ -243,7 +213,7 @@ async function handleProgramAction(programId, rel, href, button) {
         }
 
         const link = normalizeHref(href) || `${PROGRAMS_URL}/${programId}/${rel}`;
-        await fetchJson(link, { method: "POST" });
+        await fetchJson(link, { method: "POST" }, t("dashboard.program.actionError"));
         showToast(rel === "start" ? t("dashboard.program.starting") : t("dashboard.program.stopping"));
     } catch (error) {
         showToast(error.message || t("dashboard.program.actionError"), "error");
@@ -276,7 +246,7 @@ async function handleDeviceAction(deviceId, action, href, button) {
         try {
             const response = await authFetch(target, { method: "DELETE" });
             if (!response.ok) {
-                throw await toProblem(response);
+                throw await errorFromResponse(response, t("dashboard.device.deleteError"));
             }
             showToast(t("dashboard.device.deleted"));
             await loadDevices();

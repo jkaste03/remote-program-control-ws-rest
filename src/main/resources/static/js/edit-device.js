@@ -1,4 +1,5 @@
 import { t, i18nReady, applyTranslations } from "./i18n.js";
+import { errorFromResponse } from "./problem.js";
 
 await i18nReady;
 applyTranslations();
@@ -19,7 +20,7 @@ async function fetchDeviceDetails() {
         });
 
         if (!response.ok) {
-            throw new Error(t("device.error.fetch"));
+            throw await errorFromResponse(response, t("device.error.fetch"));
         }
 
         const device = await response.json();
@@ -29,7 +30,7 @@ async function fetchDeviceDetails() {
         document.getElementById("wakeOnLanPort").value = device.wakeOnLanPort;
         document.getElementById("macAddress").value = device.macAddress;
     } catch (error) {
-        showToast(t("device.toast.loadError", { message: error.message }), "error");
+        showToast(error.message || t("device.error.fetch"), "error");
     }
 }
 
@@ -59,17 +60,11 @@ form.addEventListener("submit", async (e) => {
         });
 
         if (!response.ok) {
-            let errorMessage = t("device.error.update");
-            try {
-                const errorData = await response.json();
-                const validationError = Array.isArray(errorData.errors) && errorData.errors.length > 0
-                    ? errorData.errors[0].message
-                    : null;
-                errorMessage = validationError || errorData.detail || errorMessage;
-            } catch (parseError) {
-                console.error("Failed to parse error response", parseError);
-            }
-            throw new Error(errorMessage);
+            const err = await errorFromResponse(response, t("device.error.update"));
+            const validationError = Array.isArray(err.problem?.errors) && err.problem.errors.length > 0
+                ? err.problem.errors[0].message
+                : null;
+            throw new Error(validationError || err.message);
         }
 
         showToast(t("device.toast.updateSuccess"), "success");
@@ -79,7 +74,7 @@ form.addEventListener("submit", async (e) => {
             window.location.href = "/";
         }, 1500);
     } catch (error) {
-        showToast(t("device.toast.updateError", { message: error.message }), "error");
+        showToast(error.message || t("device.error.update"), "error");
     }
 });
 

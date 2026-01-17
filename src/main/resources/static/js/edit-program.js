@@ -1,4 +1,5 @@
 import { t, i18nReady, applyTranslations } from "./i18n.js";
+import { errorFromResponse } from "./problem.js";
 
 await i18nReady;
 applyTranslations();
@@ -127,8 +128,7 @@ async function searchUsers(query) {
         const url = `/remote-program-control/api/v1/users/search?q=${encodeURIComponent(trimmed)}&limit=10`;
         const response = await authFetch(url);
         if (!response.ok) {
-            const err = await response.text();
-            throw new Error(err || t("program.search.failed"));
+            throw await errorFromResponse(response, t("program.search.failed"));
         }
         const users = await response.json();
         renderSearchResults(users);
@@ -148,36 +148,11 @@ function hydrateSelectedUsers(program) {
     renderSelectedUsers();
 }
 
-async function parseErrorResponse(response) {
-    const contentType = response.headers.get("content-type") || "";
-    const isJson = contentType.includes("application/json") || contentType.includes("application/problem+json");
-
-    if (isJson) {
-        try {
-            const data = await response.json();
-            if (response.status === 404) {
-                return data.detail || t("program.error.notFound");
-            }
-            return data.detail || data.title || t("common.genericError");
-        } catch (e) {
-            console.warn("Failed to parse JSON error response", e);
-        }
-    }
-
-    const text = await response.text();
-    if (text) {
-        return text;
-    }
-
-    return t("common.genericError");
-}
-
 async function fetchProgramDetails() {
     try {
         const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}`);
         if (!response.ok) {
-            const message = await parseErrorResponse(response);
-            throw new Error(message || t("program.error.fetch"));
+            throw await errorFromResponse(response, t("program.error.fetch"));
         }
 
         const program = await response.json();
@@ -187,7 +162,7 @@ async function fetchProgramDetails() {
         toggleAllowedSection(program.isPublic);
         hydrateSelectedUsers(program);
     } catch (error) {
-        showToast(t("program.toast.loadError", { message: error.message }), "error");
+        showToast(error?.message || t("program.error.fetch"), "error");
     }
 }
 
@@ -214,16 +189,12 @@ form.addEventListener("submit", async (e) => {
         });
 
         if (!response.ok) {
-            let message = t("program.error.update");
-            try {
-                const errorData = await response.json();
-                const validationError =
-                    Array.isArray(errorData.errors) && errorData.errors.length > 0 ? errorData.errors[0].message : null;
-                message = validationError || errorData.detail || message;
-            } catch (parseError) {
-                console.error("Failed to parse error response", parseError);
-            }
-            throw new Error(message);
+            const err = await errorFromResponse(response, t("program.error.update"));
+            const validationError =
+                Array.isArray(err.problem?.errors) && err.problem.errors.length > 0
+                    ? err.problem.errors[0].message
+                    : null;
+            throw new Error(validationError || err.message);
         }
 
         showToast(t("program.toast.updateSuccess"), "success");
@@ -231,7 +202,7 @@ form.addEventListener("submit", async (e) => {
             window.location.href = "/";
         }, 1200);
     } catch (error) {
-        showToast(error.message, "error");
+        showToast(error.message || t("program.error.update"), "error");
     }
 });
 
