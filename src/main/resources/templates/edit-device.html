@@ -7,61 +7,7 @@
         <meta name="access-token" th:content="${accessToken}" content="" />
         <meta name="device-id" th:content="${deviceId}" content="" />
         <meta name="locale" th:content="${#locale}" content="en" />
-        <link rel="stylesheet" th:href="@{/css/dashboard.css}" href="/css/dashboard.css" />
-        <style>
-            .form-container {
-                max-width: 600px;
-                margin: 2rem auto;
-                background: white;
-                padding: 2rem;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-            .form-group {
-                margin-bottom: 1.5rem;
-            }
-            .form-group label {
-                display: block;
-                margin-bottom: 0.5rem;
-                font-weight: 500;
-            }
-            .form-group input {
-                width: 100%;
-                padding: 0.5rem;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                font-size: 1rem;
-            }
-            .form-group input:read-only {
-                background-color: #f5f5f5;
-                cursor: not-allowed;
-            }
-            .button-group {
-                display: flex;
-                gap: 1rem;
-                justify-content: flex-end;
-                margin-top: 2rem;
-            }
-            .btn {
-                padding: 0.5rem 1rem;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 1rem;
-                text-decoration: none;
-            }
-            .btn-primary {
-                background-color: #007bff;
-                color: white;
-            }
-            .btn-secondary {
-                background-color: #6c757d;
-                color: white;
-            }
-            .btn:hover {
-                opacity: 0.9;
-            }
-        </style>
+        <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css" />
     </head>
     <body>
         <div class="page">
@@ -104,7 +50,7 @@
                             data-i18n="device.form.mac.title"
                             data-i18n-attr="title"
                         />
-                        <small style="color: #666" data-i18n="device.form.mac.help">Format: 00:11:22:33:44:55</small>
+                        <small data-i18n="device.form.mac.help">Format: 00:11:22:33:44:55</small>
                     </div>
 
                     <div class="button-group">

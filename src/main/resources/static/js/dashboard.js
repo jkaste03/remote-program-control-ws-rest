@@ -157,6 +157,7 @@ function renderPrograms(programs, deviceId) {
                     ? t("dashboard.program.stop")
                     : t("dashboard.program.busy");
             const disabled = !action || busy ? "disabled" : "";
+            const actionClass = action === "stop" ? "btn btn-danger" : "btn btn-primary";
 
             return `
                 <div class="program-row" data-program-id="${program.id}" data-device-id="${deviceId}">
@@ -165,7 +166,7 @@ function renderPrograms(programs, deviceId) {
                         <p class="program-meta">${t("dashboard.program.status")}: <span id="program-status-${program.id}">${status}</span></p>
                     </div>
                     <div class="actions">
-                        <button class="btn btn-primary" data-program-action="${action ?? ""}" data-program-id="${
+                        <button class="${actionClass}" data-program-action="${action ?? ""}" data-program-id="${
                 program.id
             }" data-href="${actionHref}" ${disabled}>${label}</button>
                         ${
@@ -214,6 +215,7 @@ async function handleProgramAction(programId, rel, href, button) {
 
         const link = normalizeHref(href) || `${PROGRAMS_URL}/${programId}/${rel}`;
         await fetchJson(link, { method: "POST" }, t("dashboard.program.actionError"));
+        updateProgramStatus(programId, rel === "start" ? "TRYING_TO_START" : "TRYING_TO_STOP");
         showToast(rel === "start" ? t("dashboard.program.starting") : t("dashboard.program.stopping"));
     } catch (error) {
         showToast(error.message || t("dashboard.program.actionError"), "error");
@@ -319,6 +321,11 @@ function updateProgramStatus(programId, status) {
                     ? t("dashboard.program.stop")
                     : t("dashboard.program.busy");
             button.dataset.programAction = action ?? "";
+            if (action === "stop") {
+                button.className = "btn btn-danger";
+            } else {
+                button.className = "btn btn-primary";
+            }
 
             // Update href based on action to ensure the correct endpoint is called
             if (action) {
