@@ -51,7 +51,6 @@
   "program.form.filename.help": "Filnavn kan ikke endres her.",
   "program.form.name.label": "Programnavn",
   "program.form.public.label": "Offentlig program",
-  "program.form.public.help": "Fjern avhukingen for å begrense tilgang til utvalgte brukere.",
   "program.form.allowedUsers.label": "Tillatte brukere",
   "program.form.allowedUsers.help": "Velg hvem som kan bruke dette programmet.",
   "program.form.allowedUsers.none": "Ingen brukere valgt",
@@ -65,6 +64,7 @@
   "program.search.failed": "Klarte ikke søke etter brukere",
   "program.search.couldNotSearch": "Kunne ikke søke etter brukere",
   "program.error.fetch": "Kunne ikke hente program",
+  "program.error.notFound": "Programmet ble ikke funnet.",
   "program.toast.loadError": "Feil ved lasting av program: {message}",
   "program.error.update": "Kunne ikke oppdatere program",
   "program.toast.updateSuccess": "Program oppdatert!"

@@ -68,7 +68,7 @@ function renderSelectedUsers() {
                 ${u.label}
                 <button type="button" aria-label="${t("program.form.allowedUsers.remove", { user: u.label })}" data-remove-user="${u.id}">&times;</button>
             </span>
-        `
+        `,
         )
         .join("");
 
@@ -102,8 +102,8 @@ function renderSearchResults(users) {
                             <strong>${labelSafe}</strong>
                         </div>
                         <button type="button" data-user-id="${u.id}" data-user-label="${labelEncoded}" ${
-                    alreadySelected ? "disabled" : ""
-                }>
+                            alreadySelected ? "disabled" : ""
+                        }>
                             ${alreadySelected ? t("program.search.added") : t("program.search.add")}
                         </button>
                     </div>
@@ -148,12 +148,36 @@ function hydrateSelectedUsers(program) {
     renderSelectedUsers();
 }
 
+async function parseErrorResponse(response) {
+    const contentType = response.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json") || contentType.includes("application/problem+json");
+
+    if (isJson) {
+        try {
+            const data = await response.json();
+            if (response.status === 404) {
+                return data.detail || t("program.error.notFound");
+            }
+            return data.detail || data.title || t("common.genericError");
+        } catch (e) {
+            console.warn("Failed to parse JSON error response", e);
+        }
+    }
+
+    const text = await response.text();
+    if (text) {
+        return text;
+    }
+
+    return t("common.genericError");
+}
+
 async function fetchProgramDetails() {
     try {
         const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}`);
         if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(errText || t("program.error.fetch"));
+            const message = await parseErrorResponse(response);
+            throw new Error(message || t("program.error.fetch"));
         }
 
         const program = await response.json();
@@ -194,9 +218,7 @@ form.addEventListener("submit", async (e) => {
             try {
                 const errorData = await response.json();
                 const validationError =
-                    Array.isArray(errorData.errors) && errorData.errors.length > 0
-                        ? errorData.errors[0].message
-                        : null;
+                    Array.isArray(errorData.errors) && errorData.errors.length > 0 ? errorData.errors[0].message : null;
                 message = validationError || errorData.detail || message;
             } catch (parseError) {
                 console.error("Failed to parse error response", parseError);
