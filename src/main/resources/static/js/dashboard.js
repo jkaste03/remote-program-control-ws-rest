@@ -151,11 +151,12 @@ function renderPrograms(programs, deviceId) {
             const action = startLink ? "start" : stopLink ? "stop" : null;
             const actionHref = startLink || stopLink || "";
             const busy = status === "TRYING_TO_START" || status === "TRYING_TO_STOP";
-            const label = action === "start"
-                ? t("dashboard.program.start")
-                : action === "stop"
-                    ? t("dashboard.program.stop")
-                    : t("dashboard.program.busy");
+            const label =
+                action === "start"
+                    ? t("dashboard.program.start")
+                    : action === "stop"
+                      ? t("dashboard.program.stop")
+                      : t("dashboard.program.busy");
             const disabled = !action || busy ? "disabled" : "";
             const actionClass = action === "stop" ? "btn btn-danger" : "btn btn-primary";
 
@@ -167,8 +168,8 @@ function renderPrograms(programs, deviceId) {
                     </div>
                     <div class="actions">
                         <button class="${actionClass}" data-program-action="${action ?? ""}" data-program-id="${
-                program.id
-            }" data-href="${actionHref}" ${disabled}>${label}</button>
+                            program.id
+                        }" data-href="${actionHref}" ${disabled}>${label}</button>
                         ${
                             updateLink
                                 ? `<button class="btn" data-program-action="update" data-program-id="${program.id}" data-href="${updateLink}">${t("dashboard.program.update")}</button>`
@@ -269,7 +270,7 @@ function showToast(message, variant = "info") {
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => {
         toastEl.classList.add("toast-hidden");
-    }, 2600); // TODO: Set longer duration (possibly based on message length/variant)
+    }, 3000); // TODO: Set longer duration (possibly based on message length/variant)
 }
 
 function updateDeviceStatus(deviceId, status, lastSeen) {
@@ -313,11 +314,12 @@ function updateProgramStatus(programId, status) {
         const action = status === "STOPPED" ? "start" : status === "STARTED" ? "stop" : null;
         const busy = status === "TRYING_TO_START" || status === "TRYING_TO_STOP";
         if (button) {
-            button.textContent = action === "start"
-                ? t("dashboard.program.start")
-                : action === "stop"
-                    ? t("dashboard.program.stop")
-                    : t("dashboard.program.busy");
+            button.textContent =
+                action === "start"
+                    ? t("dashboard.program.start")
+                    : action === "stop"
+                      ? t("dashboard.program.stop")
+                      : t("dashboard.program.busy");
             button.dataset.programAction = action ?? "";
             if (action === "stop") {
                 button.className = "btn btn-danger";
