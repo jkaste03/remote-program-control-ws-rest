@@ -170,26 +170,33 @@ public class SseService {
         SseEmitter emitter = emitters.get(device.getId());
 
         if (emitter != null) {
-            sendToEmitter(device.getId(), emitter, event, data);
+            try {
+                sendToEmitter(device.getId(), emitter, event, data);
+                return;
+            } catch (SseDeliveryException ex) {
+                // Treat as offline if a fresh disconnect happened during send
+                if (event != SseEvent.START_PROGRAM) {
+                    throw ex;
+                }
+                log.info("Delivery to device {} failed mid-send. Falling back to WoL queue.", device.getId());
+            }
         } else {
             // Device is OFFLINE
+        }
 
-            if (event == SseEvent.START_PROGRAM) {
-                // 2. Start command -> Queue and initiate WoL
-                log.info("Device {} is offline. Initiating WoL flow.", device.getId());
-                wolService.sendMagicPacket(device.getMacAddress(), device.getPublicIp(), device.getWakeOnLanPort());
+        // Offline handling for START_PROGRAM
+        if (event == SseEvent.START_PROGRAM) {
+            log.info("Device {} is offline. Initiating WoL flow.", device.getId());
+            wolService.sendMagicPacket(device.getMacAddress(), device.getPublicIp(), device.getWakeOnLanPort());
 
-                long programId = extractProgramId(data);
-                PendingKey key = new PendingKey(device.getId(), programId);
-                pendingCommands.put(key, new PendingCommand(
-                        device, programId, event, data, 1, Instant.now(), onFailure));
-            } else {
-                // 3. STOP command (or others) -> Fail fast!
-                // Vi kan ikke stoppe en PC som ikke responderer. Kaster exception for å rulle
-                // tilbake transaksjonen.
-                log.warn("Cannot send event '{}' to offline device {}", event, device.getId());
-                throw new SseDeliveryException("Device is offline. Cannot perform " + event.eventName());
-            }
+            long programId = extractProgramId(data);
+            PendingKey key = new PendingKey(device.getId(), programId);
+            pendingCommands.put(key, new PendingCommand(
+                    device, programId, event, data, 1, Instant.now(), onFailure));
+        } else {
+            // STOP or others -> fail fast
+            log.warn("Cannot send event '{}' to offline device {}", event, device.getId());
+            throw new SseDeliveryException("Device is offline. Cannot perform " + event.eventName());
         }
     }
 
