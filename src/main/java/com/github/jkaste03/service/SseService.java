@@ -37,6 +37,7 @@ public class SseService {
     private static final long SHUTDOWN_DELAY_SECONDS = 30;
 
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final Map<Long, Instant> emitterConnectedAt = new ConcurrentHashMap<>();
     private final Map<String, SseEmitter> dashboardEmitters = new ConcurrentHashMap<>();
 
     private final Map<PendingKey, PendingCommand> pendingCommands = new ConcurrentHashMap<>();
@@ -55,6 +56,7 @@ public class SseService {
 
     public void addEmitter(long deviceId, SseEmitter emitter) {
         emitters.put(deviceId, emitter);
+        emitterConnectedAt.put(deviceId, Instant.now());
 
         // 1. Enheten har koblet til -> Sett ONLINE
         deviceService.updateDeviceStatus(deviceId, Device.Status.ONLINE);
@@ -63,6 +65,7 @@ public class SseService {
         // 2. Rydd opp og sett OFFLINE når koblingen dør
         Runnable removeAndSetOffline = () -> {
             emitters.remove(deviceId);
+            emitterConnectedAt.remove(deviceId);
             deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
             log.info("Device {} disconnected. Status set to OFFLINE.", deviceId);
         };
@@ -117,11 +120,19 @@ public class SseService {
     }
 
     private void checkAndScheduleShutdown(Long deviceId) {
+        Instant scheduledAt = Instant.now();
         scheduler.schedule(() -> {
             try {
                 // 1. Sjekk om enheten fortsatt er ONLINE
                 if (!emitters.containsKey(deviceId)) {
                     log.info("Device {} is offline, skipping shutdown check.", deviceId);
+                    return;
+                }
+
+                // 1b. Hvis en ny tilkobling skjedde etter at vi planla dette, hopp over
+                Instant connectedAt = emitterConnectedAt.get(deviceId);
+                if (connectedAt != null && connectedAt.isAfter(scheduledAt)) {
+                    log.info("Device {} reconnected after shutdown was scheduled. Skipping shutdown.", deviceId);
                     return;
                 }
 
