@@ -32,6 +32,7 @@ public class SseService {
     private static final Logger log = LoggerFactory.getLogger(SseService.class);
 
     private static final long WAIT_TIMEOUT_SECONDS = 45;
+    private static final long GIVE_UP_TIMEOUT_SECONDS = 300; // 5 minutes
     private static final int MAX_ATTEMPTS = 2;
     private static final long SHUTDOWN_DELAY_SECONDS = 30;
 
@@ -223,37 +224,35 @@ public class SseService {
         pendingCommands.forEach((deviceId, cmd) -> {
             long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(cmd.lastAttempt(), now);
 
-            if (secondsSinceLastAttempt > WAIT_TIMEOUT_SECONDS) {
-                if (cmd.attemptCount() < MAX_ATTEMPTS) {
-                    // Retry
-                    log.info("Timeout waiting for device {}. Attempt {}/{}", deviceId, cmd.attemptCount() + 1,
-                            MAX_ATTEMPTS);
+            if (cmd.attemptCount() < MAX_ATTEMPTS && secondsSinceLastAttempt > WAIT_TIMEOUT_SECONDS) {
+                // Retry (e.g. send a second WoL after 45 seconds)
+                log.info("Timeout waiting for device {}. Attempt {}/{}", deviceId, cmd.attemptCount() + 1,
+                        MAX_ATTEMPTS);
 
-                    wolService.sendMagicPacket(
-                            cmd.device().getMacAddress(),
-                            cmd.device().getPublicIp(),
-                            cmd.device().getWakeOnLanPort());
+                wolService.sendMagicPacket(
+                        cmd.device().getMacAddress(),
+                        cmd.device().getPublicIp(),
+                        cmd.device().getWakeOnLanPort());
 
-                    // Update state
-                    pendingCommands.put(deviceId, new PendingCommand(
-                            cmd.device(), cmd.event(), cmd.data(), cmd.attemptCount() + 1, Instant.now(),
-                            cmd.onFailure()));
-                } else {
-                    // Give up
-                    log.warn("Device {} did not connect after {} attempts. Giving up command.", deviceId,
-                            MAX_ATTEMPTS);
-                    pendingCommands.remove(deviceId);
+                // Update state
+                pendingCommands.put(deviceId, new PendingCommand(
+                        cmd.device(), cmd.event(), cmd.data(), cmd.attemptCount() + 1, Instant.now(),
+                        cmd.onFailure()));
+            } else if (cmd.attemptCount() >= MAX_ATTEMPTS && secondsSinceLastAttempt > GIVE_UP_TIMEOUT_SECONDS) {
+                // Give up after extended wait following the final attempt
+                log.warn("Device {} did not connect after {} attempts. Giving up command.", deviceId,
+                        MAX_ATTEMPTS);
+                pendingCommands.remove(deviceId);
 
-                    // Run callback
-                    if (cmd.onFailure() != null) {
-                        cmd.onFailure().run();
-                    }
+                // Run callback
+                if (cmd.onFailure() != null) {
+                    cmd.onFailure().run();
                 }
             }
         });
     }
 
-    @Scheduled(fixedRate = 30000) // Send heartbeat every 30 seconds
+    @Scheduled(fixedRate = 60000) // Send heartbeat every 60 seconds
     public void sendHeartbeat() {
         if (emitters.isEmpty()) {
             return;
