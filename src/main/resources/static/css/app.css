@@ -242,6 +242,12 @@ a {
     color: #7f1d1d;
 }
 
+.btn-danger:hover:not(:disabled) {
+    border-color: rgba(220, 38, 38, 0.6);
+    background: rgba(220, 38, 38, 0.18);
+    color: #7f1d1d;
+}
+
 .badge {
     padding: 5px 10px;
     border-radius: var(--radius-sm);

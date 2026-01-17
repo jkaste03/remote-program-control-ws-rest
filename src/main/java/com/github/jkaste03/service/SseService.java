@@ -39,7 +39,7 @@ public class SseService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
     private final Map<String, SseEmitter> dashboardEmitters = new ConcurrentHashMap<>();
 
-    private final Map<Long, PendingCommand> pendingCommands = new ConcurrentHashMap<>();
+    private final Map<PendingKey, PendingCommand> pendingCommands = new ConcurrentHashMap<>();
 
     private final WakeOnLanService wolService;
     private final DeviceService deviceService;
@@ -179,8 +179,10 @@ public class SseService {
                 log.info("Device {} is offline. Initiating WoL flow.", device.getId());
                 wolService.sendMagicPacket(device.getMacAddress(), device.getPublicIp(), device.getWakeOnLanPort());
 
-                pendingCommands.put(device.getId(), new PendingCommand(
-                        device, event, data, 1, Instant.now(), onFailure));
+                long programId = extractProgramId(data);
+                PendingKey key = new PendingKey(device.getId(), programId);
+                pendingCommands.put(key, new PendingCommand(
+                        device, programId, event, data, 1, Instant.now(), onFailure));
             } else {
                 // 3. STOP command (or others) -> Fail fast!
                 // Vi kan ikke stoppe en PC som ikke responderer. Kaster exception for å rulle
@@ -205,28 +207,33 @@ public class SseService {
     }
 
     private void checkPendingAndExecute(long deviceId) {
-        PendingCommand command = pendingCommands.remove(deviceId);
-        if (command != null) {
-            log.info("Found pending command for device {}. Executing now.", deviceId);
-            // Since we now know that the emitter exists (the method is called from
-            // addEmitter), we can safely get it again.
-            SseEmitter emitter = emitters.get(deviceId);
-            if (emitter != null) {
-                sendToEmitter(deviceId, emitter, command.event(), command.data());
-            }
+        SseEmitter emitter = emitters.get(deviceId);
+        if (emitter == null) {
+            return;
         }
+
+        pendingCommands.entrySet().removeIf(entry -> {
+            if (entry.getKey().deviceId() != deviceId) {
+                return false;
+            }
+            PendingCommand command = entry.getValue();
+            log.info("Found pending command for device {} program {}. Executing now.", deviceId, command.programId());
+            sendToEmitter(deviceId, emitter, command.event(), command.data());
+            return true;
+        });
     }
 
     @Scheduled(fixedRate = 5000)
     public void monitorPendingCommands() {
         Instant now = Instant.now();
 
-        pendingCommands.forEach((deviceId, cmd) -> {
+        pendingCommands.forEach((key, cmd) -> {
             long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(cmd.lastAttempt(), now);
 
             if (cmd.attemptCount() < MAX_ATTEMPTS && secondsSinceLastAttempt > WAIT_TIMEOUT_SECONDS) {
                 // Retry (e.g. send a second WoL after 45 seconds)
-                log.info("Timeout waiting for device {}. Attempt {}/{}", deviceId, cmd.attemptCount() + 1,
+                log.info("Timeout waiting for device {} program {}. Attempt {}/{}", key.deviceId(), cmd.programId(),
+                        cmd.attemptCount() + 1,
                         MAX_ATTEMPTS);
 
                 wolService.sendMagicPacket(
@@ -235,14 +242,15 @@ public class SseService {
                         cmd.device().getWakeOnLanPort());
 
                 // Update state
-                pendingCommands.put(deviceId, new PendingCommand(
-                        cmd.device(), cmd.event(), cmd.data(), cmd.attemptCount() + 1, Instant.now(),
+                pendingCommands.put(key, new PendingCommand(
+                        cmd.device(), cmd.programId(), cmd.event(), cmd.data(), cmd.attemptCount() + 1, Instant.now(),
                         cmd.onFailure()));
             } else if (cmd.attemptCount() >= MAX_ATTEMPTS && secondsSinceLastAttempt > GIVE_UP_TIMEOUT_SECONDS) {
                 // Give up after extended wait following the final attempt
-                log.warn("Device {} did not connect after {} attempts. Giving up command.", deviceId,
+                log.warn("Device {} program {} did not connect after {} attempts. Giving up command.", key.deviceId(),
+                        cmd.programId(),
                         MAX_ATTEMPTS);
-                pendingCommands.remove(deviceId);
+                pendingCommands.remove(key);
 
                 // Run callback
                 if (cmd.onFailure() != null) {
@@ -280,11 +288,23 @@ public class SseService {
     // Simple record for pending command state
     private record PendingCommand(
             Device device,
+            long programId,
             @NonNull SseEvent event,
             @NonNull Object data,
             int attemptCount,
             Instant lastAttempt,
             Runnable onFailure // Run on timeout
     ) {
+    }
+
+    private record PendingKey(long deviceId, long programId) {
+    }
+
+    private long extractProgramId(Object data) {
+        if (data instanceof com.github.jkaste03.dto.response.ProgramCommandDto dto) {
+            return dto.id();
+        }
+        log.warn("Unable to extract program id from pending command payload {}", data);
+        return -1L;
     }
 }
