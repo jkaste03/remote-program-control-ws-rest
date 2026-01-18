@@ -13,6 +13,9 @@ const deviceContainer = document.getElementById("device-container");
 const toastEl = document.getElementById("toast");
 const deviceState = new Map();
 const programState = new Map();
+let es;
+let sseRetryMs = 3000;
+const SSE_RETRY_MAX = 30000;
 
 function getAccessToken() {
     const inline = typeof window !== "undefined" ? window.__ACCESS_TOKEN__ : null;
@@ -338,7 +341,15 @@ function updateProgramStatus(programId, status) {
 }
 
 function initSse() {
-    const es = new EventSource(DASHBOARD_EVENTS_URL);
+    if (es) {
+        try {
+            es.close();
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    es = new EventSource(DASHBOARD_EVENTS_URL);
 
     es.addEventListener("DEVICE_STATUS", (evt) => {
         try {
@@ -358,8 +369,20 @@ function initSse() {
         }
     });
 
+    es.onopen = () => {
+        sseRetryMs = 3000; // reset backoff
+    };
+
     es.onerror = () => {
         showToast(t("dashboard.sse.lost"), "error");
+        try {
+            es.close();
+        } catch (_) {
+            // ignore
+        }
+        const wait = sseRetryMs;
+        sseRetryMs = Math.min(SSE_RETRY_MAX, sseRetryMs * 2);
+        setTimeout(() => initSse(), wait);
     };
 }
 
