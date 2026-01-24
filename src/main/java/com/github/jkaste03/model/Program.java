@@ -53,7 +53,7 @@ public class Program {
     private boolean isPublic = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 32) // longest enum literal is TRYING_TO_START (15 chars)
     private Status status = Status.STOPPED;
 
     @ManyToMany

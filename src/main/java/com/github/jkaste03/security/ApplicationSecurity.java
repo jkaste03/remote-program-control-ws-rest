@@ -1,6 +1,7 @@
 package com.github.jkaste03.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import com.github.jkaste03.security.web.KeycloakOidcUserService;
 
@@ -32,6 +34,10 @@ public class ApplicationSecurity {
 	@Value("${app.keycloak.client-id}")
 	private String keycloakClientId;
 
+	// H2-console er kun aktivert i dev, aldri i prod
+	@Value("${spring.h2.console.enabled:false}")
+	private boolean h2ConsoleEnabled;
+
 	private final KeycloakOidcUserService keycloakOidcUserService;
 
 	public ApplicationSecurity(KeycloakOidcUserService keycloakOidcUserService) {
@@ -43,6 +49,7 @@ public class ApplicationSecurity {
 	 */
 	@Bean
 	@Order(1) // Viktig: denne må komme før "hovedkjeden"
+	@ConditionalOnProperty(value = "spring.h2.console.enabled", havingValue = "true")
 	public SecurityFilterChain h2SecurityFilterChain(HttpSecurity http) throws Exception {
 		http
 				.securityMatcher(PathRequest.toH2Console()) // matcher /h2-console/**
@@ -65,9 +72,13 @@ public class ApplicationSecurity {
 			Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter,
 			ClientRegistrationRepository clientRegistrationRepository) throws Exception {
 
+		// I prod er H2-konsollen av, så ikke bruk PathRequest (mangler bean)
+		if (h2ConsoleEnabled) {
+			RequestMatcher nonH2Matcher = new NegatedRequestMatcher(PathRequest.toH2Console());
+			http.securityMatcher(nonH2Matcher);
+		}
+
 		http
-				// Ekskluder H2 fra hovedkjeden (ikke strengt nødvendig, men ryddig)
-				.securityMatcher(new NegatedRequestMatcher(PathRequest.toH2Console()))
 				.csrf(csrf -> csrf.disable())
 				// Vi tillater session for OAuth2 login flyten
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))

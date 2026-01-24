@@ -3,6 +3,7 @@
  */
 package com.github.jkaste03.repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -18,4 +19,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String username, String email,
             Pageable pageable);
+
+    Optional<User> findByUsername(String username);
+
+    Optional<User> findByEmail(String email);
 }

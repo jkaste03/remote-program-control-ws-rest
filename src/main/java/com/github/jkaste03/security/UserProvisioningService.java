@@ -43,18 +43,20 @@ public class UserProvisioningService {
 	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW) // Sørger for at bruker lagres hvis device ikke lagres
 	public User getOrCreateUser(UserPrincipal principal) {
-		// 1. Prøv å finn bruker raskt
+		// 1. Prøv raskt på ID
 		return userRepo.findById(principal.id())
+				// 2. Fallback på username/email for å unngå å prøve insert hvis de allerede finnes
+				.or(() -> userRepo.findByUsername(principal.username()))
+				.or(() -> userRepo.findByEmail(principal.email()))
 				.orElseGet(() -> {
-					// 2. Hvis ikke funnet, prøv å opprette i isolert transaksjon
 					try {
 						// VIKTIG: Kaller via 'self' for at transaksjonen skal virke
 						return self.createUserInNewTransaction(principal);
 					} catch (DataIntegrityViolationException e) {
-						// 3. Race condition oppstod: Noen andre opprettet brukeren akkurat nå.
-						// Den indre transaksjonen rullet tilbake, men vår ytre er OK.
-						// Vi prøver å hente brukeren på nytt.
+						// 3. Race condition eller unik-kollisjon: prøv alle kjente nøkler før vi gir opp
 						return userRepo.findById(principal.id())
+								.or(() -> userRepo.findByUsername(principal.username()))
+								.or(() -> userRepo.findByEmail(principal.email()))
 								.orElseThrow(() -> new RuntimeException(
 										"Unexpected race condition: User creation failed but user still not found", e));
 					}
@@ -68,6 +70,22 @@ public class UserProvisioningService {
 	 */
 	@Transactional(propagation = Propagation.REQUIRES_NEW)
 	public User createUserInNewTransaction(UserPrincipal principal) {
+		// Hvis noen har samme ID/username/email allerede, returner den for å unngå unik-kollisjon
+		User existingById = userRepo.findById(principal.id()).orElse(null);
+		if (existingById != null) {
+			return existingById;
+		}
+
+		User existingByUsername = userRepo.findByUsername(principal.username()).orElse(null);
+		if (existingByUsername != null) {
+			return existingByUsername;
+		}
+
+		User existingByEmail = userRepo.findByEmail(principal.email()).orElse(null);
+		if (existingByEmail != null) {
+			return existingByEmail;
+		}
+
 		Role role = roleRepo.findByName(DEFAULT_ROLE_NAME)
 				.orElseThrow(() -> new IllegalStateException("System configuration error: Required role '"
 						+ DEFAULT_ROLE_NAME + "' not found in database."));
