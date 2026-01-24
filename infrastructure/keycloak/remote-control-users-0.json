@@ -1,5 +1,5 @@
 {
-    "realm": "DAT152",
+    "realm": "remote-control",
     "users": [
         {
             "id": "1ba8ff98-22e2-4607-8972-4e851cd0f6ca",
@@ -23,15 +23,15 @@
             ],
             "disableableCredentialTypes": [],
             "requiredActions": [],
-            "realmRoles": ["default-roles-dat152"],
+            "realmRoles": ["default-roles-remote-control"],
             "clientRoles": {
-                "dat152oblig2": ["USER"],
-                "dat152WebSSOApp": ["USER"]
+                "remote-control-api": ["USER"],
+                "remote-control-web": ["USER"]
             },
             "clientConsents": [
                 {
-                    "clientId": "dat152WebSSOApp",
-                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "clientId": "remote-control-web",
+                    "grantedClientScopes": ["email", "profile", "remote-control-web", "roles"],
                     "createdDate": 1759840856912,
                     "lastUpdatedDate": 1759846666513
                 }
@@ -61,15 +61,15 @@
             ],
             "disableableCredentialTypes": [],
             "requiredActions": [],
-            "realmRoles": ["default-roles-dat152"],
+            "realmRoles": ["default-roles-remote-control"],
             "clientRoles": {
-                "dat152oblig2": ["ADMIN"],
-                "dat152WebSSOApp": ["ADMIN"]
+                "remote-control-api": ["ADMIN"],
+                "remote-control-web": ["ADMIN"]
             },
             "clientConsents": [
                 {
-                    "clientId": "dat152WebSSOApp",
-                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "clientId": "remote-control-web",
+                    "grantedClientScopes": ["email", "profile", "remote-control-web", "roles"],
                     "createdDate": 1759863048237,
                     "lastUpdatedDate": 1759863048246
                 }
@@ -99,14 +99,14 @@
             ],
             "disableableCredentialTypes": [],
             "requiredActions": [],
-            "realmRoles": ["default-roles-dat152"],
+            "realmRoles": ["default-roles-remote-control"],
             "clientRoles": {
-                "dat152oblig2": ["USER"]
+                "remote-control-api": ["USER"]
             },
             "clientConsents": [
                 {
-                    "clientId": "dat152WebSSOApp",
-                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "clientId": "remote-control-web",
+                    "grantedClientScopes": ["email", "profile", "remote-control-web", "roles"],
                     "createdDate": 1759863344287,
                     "lastUpdatedDate": 1759863344300
                 }
@@ -136,14 +136,14 @@
             ],
             "disableableCredentialTypes": [],
             "requiredActions": [],
-            "realmRoles": ["default-roles-dat152"],
+            "realmRoles": ["default-roles-remote-control"],
             "clientRoles": {
-                "dat152oblig2": ["USER"]
+                "remote-control-api": ["USER"]
             },
             "clientConsents": [
                 {
-                    "clientId": "dat152WebSSOApp",
-                    "grantedClientScopes": ["email", "profile", "dat152WebSSOApp", "roles"],
+                    "clientId": "remote-control-web",
+                    "grantedClientScopes": ["email", "profile", "remote-control-web", "roles"],
                     "createdDate": 1759871891696,
                     "lastUpdatedDate": 1759871891747
                 }
