@@ -9,9 +9,9 @@ This directory contains the realm configuration for the Remote Program Control a
     -   Start Keycloak.
     -   Go to the Admin Console.
     -   Create a new realm (or select "Import Realm").
-    -   Select `DAT152-realm.json` from this directory.
+    -   Select `remote-control-realm.json` from this directory.
 
 ## Files
 
--   `DAT152-realm.json`: The main realm export containing clients, roles, and configuration.
--   `DAT152-users-0.json`: Contains the initial user setup (if exported with users).
+-   `remote-control-realm.json`: The main realm export containing clients, roles, and configuration.
+-   `remote-control-users-0.json`: Contains the initial user setup (if exported with users).
