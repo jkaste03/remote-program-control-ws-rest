@@ -16,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.util.StringUtils;
 
 import com.github.jkaste03.exceptions.InvalidTokenException;
 
@@ -42,6 +43,11 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         String sub = jwt.getSubject();
+        if (!StringUtils.hasText(sub)) {
+            log.warn("JWT missing 'sub' claim");
+            throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY);
+        }
+
         UUID userId;
         try {
             userId = UUID.fromString(sub);
@@ -51,13 +57,13 @@ public class UserPrincipalJwtAuthenticationConverter implements Converter<Jwt, A
         }
 
         String email = jwt.getClaimAsString(EMAIL_CLAIM);
-        if (email == null) {
+        if (!StringUtils.hasText(email)) {
             log.warn("JWT missing required claim: {}", EMAIL_CLAIM);
             throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY);
         }
 
         String username = jwt.getClaimAsString(USERNAME_CLAIM);
-        if (username == null) {
+        if (!StringUtils.hasText(username)) {
             log.warn("JWT missing required claim: {}", USERNAME_CLAIM);
             throw new InvalidTokenException(INVALID_TOKEN_MESSAGE_KEY);
         }
