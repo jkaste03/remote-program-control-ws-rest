@@ -1,6 +1,6 @@
 {
     "realm": "remote-control",
-    "displayName": "Remote Control",
+    "displayName": "Remote Program Control",
     "enabled": true,
     "loginWithEmailAllowed": true,
     "registrationAllowed": true,
@@ -31,6 +31,24 @@
             }
         }
     ],
+    "attributes": {
+        "userProfileEnabled": "true"
+    },
+    "components": {
+        "org.keycloak.userprofile.UserProfileProvider": [
+            {
+                "id": "c1f72740-4c3e-436f-8dc3-339241b71120",
+                "name": "declarative-user-profile",
+                "providerId": "declarative-user-profile",
+                "subComponents": {},
+                "config": {
+                    "kc.user.profile.config": [
+                        "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}}]}"
+                    ]
+                }
+            }
+        ]
+    },
     "identityProviderMappers": [
         {
             "name": "google-username",

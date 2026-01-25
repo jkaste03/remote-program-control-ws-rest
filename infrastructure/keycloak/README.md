@@ -16,3 +16,5 @@ To run Keycloak for dev on Windows:
 ```
 
 For production, point `SPRING_SECURITY_OAUTH2_*` issuer URLs in `prod.env` to your real Keycloak base.
+
+Remember to do the following change in Keycloak console: Clients -> remote-control-api -> Client scopes -> remote control api dedicated -> Mappers -> Add mapper -> By configuration -> Sub -> Add to access token (On)
