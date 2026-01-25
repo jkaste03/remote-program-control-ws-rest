@@ -61,7 +61,8 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
         user.setUsername("user");
         user.setRole(roleUser);
 
-        // save(..) returns managed instances when IDs are pre-assigned; reuse them so Device.owner is managed
+        // save(..) returns managed instances when IDs are pre-assigned; reuse them so
+        // Device.owner is managed
         admin = userRepo.save(admin);
         user = userRepo.save(user);
 
@@ -75,10 +76,12 @@ public class ConfigCommandLineRunner implements CommandLineRunner {
                 null);
 
         Program calc = new Program("Calculator", true); // synlig for alle
+
+        Program adminCalc = new Program("Admin Calculator", true); // synlig for alle
         Program adminTool = new Program("AdminTool", false); // kun admin-enheten
 
         userPc.addProgram(calc);
-        adminServer.addProgram(calc);
+        adminServer.addProgram(adminCalc);
         adminServer.addProgram(adminTool);
 
         deviceRepo.saveAll(List.of(userPc, adminServer));
