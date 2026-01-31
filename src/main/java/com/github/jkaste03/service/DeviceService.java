@@ -92,7 +92,11 @@ public class DeviceService {
                             device.getOwner().getId(), programResponses, device.getStatus(), device.getLastSeen(),
                             device.getCreatedAt());
                 })
-                .toList();
+                .collect(Collectors.toList());
+
+        // Egen devices først for bedre UX
+        deviceResponses.sort(java.util.Comparator
+                .comparing((DeviceResponse d) -> !Objects.equals(d.ownerId(), userId)));
 
         return Objects.requireNonNull(deviceResponses);
     }
