@@ -180,7 +180,3 @@ src/main/resources/templates       HTML-templates
 src/main/resources/static          CSS/JS/i18n
 infrastructure/keycloak            Realm and user import
 ```
-
-## License
-
-No license has been defined yet. Add a `LICENSE` file if needed.
