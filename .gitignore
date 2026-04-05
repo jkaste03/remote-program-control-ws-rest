@@ -27,3 +27,4 @@ desktop.ini
 prod.env
 
 kc-dev.ps1
+target/
