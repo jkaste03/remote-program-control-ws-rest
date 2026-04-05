@@ -1,28 +1,21 @@
 package com.github.jkaste03.security;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestMatcher;
-
-import com.github.jkaste03.security.web.KeycloakOidcUserService;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 import jakarta.servlet.DispatcherType;
 
@@ -30,87 +23,92 @@ import jakarta.servlet.DispatcherType;
 @EnableMethodSecurity
 public class ApplicationSecurity {
 
-	// Inject verdien fra application.properties
-	@Value("${app.keycloak.client-id}")
-	private String keycloakClientId;
+	private final LocalUserDetailsService userDetailsService;
+	private final JwtService jwtService;
+	private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
-	// H2-console er kun aktivert i dev, aldri i prod
-	@Value("${spring.h2.console.enabled:false}")
-	private boolean h2ConsoleEnabled;
-
-	private final KeycloakOidcUserService keycloakOidcUserService;
-
-	public ApplicationSecurity(KeycloakOidcUserService keycloakOidcUserService) {
-		this.keycloakOidcUserService = keycloakOidcUserService;
+	public ApplicationSecurity(LocalUserDetailsService userDetailsService,
+			JwtService jwtService,
+			RestAuthenticationEntryPoint restAuthenticationEntryPoint) {
+		this.userDetailsService = userDetailsService;
+		this.jwtService = jwtService;
+		this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
 	}
 
-	/**
-	 * 1) Egen kjede for H2-konsollen – ingen JWT her.
-	 */
 	@Bean
-	@Order(1) // Viktig: denne må komme før "hovedkjeden"
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	public DaoAuthenticationProvider authenticationProvider() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+		provider.setUserDetailsService(userDetailsService);
+		provider.setPasswordEncoder(passwordEncoder());
+		return provider;
+	}
+
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+		return configuration.getAuthenticationManager();
+	}
+
+	@Bean
 	@ConditionalOnProperty(value = "spring.h2.console.enabled", havingValue = "true")
 	public SecurityFilterChain h2SecurityFilterChain(HttpSecurity http) throws Exception {
-		http
-				.securityMatcher(PathRequest.toH2Console()) // matcher /h2-console/**
-				.authorizeHttpRequests(a -> a.anyRequest().permitAll())
-				.csrf(csrf -> csrf.disable()) // H2-former takler ikke CSRF godt
-				.headers(h -> h.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
-				// H2-console bruker sesjon/cookies; la det være lov
-				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS));
-		// Ikke konfigurer oauth2ResourceServer i denne kjeden
-		return http.build();
-	}
-
-	/**
-	 * 2) Hovedkjeden – resten av appen krever JWT.
-	 */
-	@Bean
-	@Order(2)
-	public SecurityFilterChain appSecurityFilterChain(
-			HttpSecurity http,
-			Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter,
-			ClientRegistrationRepository clientRegistrationRepository) throws Exception {
-
-		// I prod er H2-konsollen av, så ikke bruk PathRequest (mangler bean)
-		if (h2ConsoleEnabled) {
-			RequestMatcher nonH2Matcher = new NegatedRequestMatcher(PathRequest.toH2Console());
-			http.securityMatcher(nonH2Matcher);
-		}
-
-		http
+		http.securityMatcher(PathRequest.toH2Console())
+				.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
 				.csrf(csrf -> csrf.disable())
-				// Vi tillater session for OAuth2 login flyten
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-				.authorizeHttpRequests(a -> a
-						.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-						.requestMatchers("/error", "/error/**", "/favicon.ico").permitAll()
-						.anyRequest().authenticated())
-				.oauth2Login(oauth2 -> oauth2
-						.userInfoEndpoint(userInfo -> userInfo.oidcUserService(keycloakOidcUserService)))
-				.logout(logout -> logout
-						.logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET"))
-						.logoutSuccessHandler(oidcLogoutSuccessHandler(clientRegistrationRepository))
-						.invalidateHttpSession(true)
-						.clearAuthentication(true)
-						.deleteCookies("JSESSIONID")
-						.permitAll())
-				.oauth2ResourceServer(
-						oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
-
+				.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS));
 		return http.build();
 	}
 
-	@Bean
-	public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter(
-			UserProvisioningService userProvisioningService) {
-		return new UserPrincipalJwtAuthenticationConverter(keycloakClientId, userProvisioningService);
-	}
+    @Bean
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService);
+        http.securityMatcher(new OrRequestMatcher(
+                new AntPathRequestMatcher("/remote-program-control/api/**"),
+                new AntPathRequestMatcher("/api/**")))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll()
+                        .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http.authenticationProvider(authenticationProvider());
+        return http.build();
+    }
 
-	private LogoutSuccessHandler oidcLogoutSuccessHandler(ClientRegistrationRepository clientRegistrationRepository) {
-		OidcClientInitiatedLogoutSuccessHandler handler = new OidcClientInitiatedLogoutSuccessHandler(
-				clientRegistrationRepository);
-		handler.setPostLogoutRedirectUri("{baseUrl}/");
-		return handler;
-	}
+    @Bean
+    public SecurityFilterChain mainSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/auth/**"))
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+                .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/.well-known/**").permitAll()
+                        .requestMatchers("/auth/**", "/login", "/register", "/error", "/favicon.ico",
+                                "/css/**", "/js/**", "/i18n/**", "/images/**")
+                        .permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .successHandler((request, response, authentication) -> {
+                            String ctx = request.getContextPath();
+                            if (ctx == null) ctx = "";
+                            if (!ctx.endsWith("/")) ctx += "/";
+                            response.sendRedirect(ctx);
+                        })
+                        .permitAll())
+                .logout(logout -> logout.logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID"));
+
+        http.authenticationProvider(authenticationProvider());
+        return http.build();
+    }
 }

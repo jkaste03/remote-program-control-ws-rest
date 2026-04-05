@@ -17,7 +17,7 @@ import com.github.jkaste03.security.UserPrincipal;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
-@RequestMapping(value = "/remote-program-control/api/v1/users", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/api/v1/users", produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserController {
 
     private static final int MAX_LIMIT = 20;

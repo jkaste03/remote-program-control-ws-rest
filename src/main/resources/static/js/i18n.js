@@ -7,7 +7,7 @@ function normalizeLocale(raw) {
 
 async function loadMessages(locale) {
     try {
-        const res = await fetch(`/i18n/${locale}.json`, { cache: "no-cache" });
+        const res = await fetch(`${contextPath}/i18n/${locale}.json`, { cache: "no-cache" });
         if (!res.ok) throw new Error("not found");
         return await res.json();
     } catch (_) {
@@ -16,6 +16,12 @@ async function loadMessages(locale) {
 }
 
 const localeMeta = document.querySelector('meta[name="locale"]');
+const ctxMeta = document.querySelector('meta[name="context-path"]');
+const contextPath = (() => {
+    const raw = ctxMeta?.content || "";
+    if (raw === "/" || raw === "") return "";
+    return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+})();
 const detectedLocale = normalizeLocale(localeMeta?.content || navigator.language || fallbackLocale);
 
 let messages = {};

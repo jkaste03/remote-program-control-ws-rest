@@ -42,7 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
-@RequestMapping("/remote-program-control/api/v1/devices")
+@RequestMapping("/api/v1/devices")
 @Validated
 public class DeviceController {
 

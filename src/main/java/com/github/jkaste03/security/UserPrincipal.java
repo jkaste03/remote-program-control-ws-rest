@@ -1,48 +1,23 @@
 package com.github.jkaste03.security;
 
 import java.io.Serializable;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.core.oidc.OidcIdToken;
-import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public record UserPrincipal(
 		UUID id,
 		String email,
 		String username,
 		Collection<? extends GrantedAuthority> authorities,
-		Map<String, Object> attributes,
-		OidcIdToken idToken,
-		OidcUserInfo userInfo) implements OidcUser, Serializable {
+		String password) implements UserDetails, Serializable {
 
-	// Forenklet konstruktør for API (JWT) bruk
 	public UserPrincipal(UUID id, String email, String username) {
-		this(id, email, username, Collections.emptyList(), Collections.emptyMap(), null, null);
-	}
-
-	@Override
-	public Map<String, Object> getAttributes() {
-		return attributes;
-	}
-
-	@Override
-	public Map<String, Object> getClaims() {
-		return attributes;
-	}
-
-	@Override
-	public OidcUserInfo getUserInfo() {
-		return userInfo;
-	}
-
-	@Override
-	public OidcIdToken getIdToken() {
-		return idToken;
+		this(id, email, username, Collections.emptyList(), null);
 	}
 
 	@Override
@@ -51,8 +26,33 @@ public record UserPrincipal(
 	}
 
 	@Override
-	public String getName() {
+	public String getPassword() {
+		return password;
+	}
+
+	@Override
+	public String getUsername() {
 		return username;
+	}
+
+	@Override
+	public boolean isAccountNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isAccountNonLocked() {
+		return true;
+	}
+
+	@Override
+	public boolean isCredentialsNonExpired() {
+		return true;
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return true;
 	}
 
 	@Override

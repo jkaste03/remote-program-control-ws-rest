@@ -32,7 +32,6 @@ import com.github.jkaste03.repository.DeviceRepository;
 import com.github.jkaste03.repository.ProgramRepository;
 import com.github.jkaste03.repository.UserRepository;
 import com.github.jkaste03.security.UserPrincipal;
-import com.github.jkaste03.security.UserProvisioningService;
 
 @Service
 public class DeviceService {
@@ -49,17 +48,15 @@ public class DeviceService {
     private final ProgramResponseMapper programResponseMapper;
     private final ProgramUniquenessValidator programUniquenessValidator;
     private final ProgramAccessService programAccessService;
-    private final UserProvisioningService userProvisioningService;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     // DO NOT INJECT SSESERVICE TO AVOID CIRCULAR REFERENCES
 
-    public DeviceService(DeviceRepository deviceRepository, UserProvisioningService userProvisioningService,
+    public DeviceService(DeviceRepository deviceRepository,
             ProgramRepository programRepository, ProgramResponseMapper programResponseMapper,
             ProgramUniquenessValidator programUniquenessValidator, ProgramAccessService programAccessService,
             UserRepository userRepository, ApplicationEventPublisher eventPublisher) {
         this.deviceRepository = deviceRepository;
-        this.userProvisioningService = userProvisioningService;
         this.programRepository = programRepository;
         this.programResponseMapper = programResponseMapper;
         this.programUniquenessValidator = programUniquenessValidator;
@@ -106,7 +103,8 @@ public class DeviceService {
         String deviceName = createRequest.name();
         String macAddress = createRequest.macAddress();
         String publicIp = createRequest.publicIp();
-        User owner = userProvisioningService.getOrCreateUser(principal);
+        User owner = userRepository.findById(principal.id())
+                .orElseThrow(() -> new ResourceNotFoundException(PROBLEM_NOT_FOUND_USERS));
         UUID userId = principal.id();
 
         ensureUniqueIdentifiers(userId, deviceName, macAddress, null);

@@ -1,0 +1,4 @@
+<Context antiResourceLocking="false">
+    <!-- Use webapp-first classloading so our bundled Jackson version is used instead of TomEE's -->
+    <Loader delegate="false" />
+</Context>

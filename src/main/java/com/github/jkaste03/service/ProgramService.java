@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -33,6 +36,8 @@ import com.github.jkaste03.repository.UserRepository;
 public class ProgramService {
 
     private static final Logger log = LoggerFactory.getLogger(SseService.class);
+    private static final long TRYING_TO_START_TIMEOUT_MINUTES = 20;
+    private static final long TRYING_TO_STOP_TIMEOUT_MINUTES = 20;
 
     private static final String PROBLEM_NOT_FOUND_PROGRAM = "problem.not-found.program";
     private static final String PROBLEM_FORBIDDEN_PROGRAM_ACCESS = "problem.forbidden.program-access";
@@ -47,6 +52,7 @@ public class ProgramService {
     private final SseService sseService;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     @Autowired
     @Lazy
@@ -162,6 +168,10 @@ public class ProgramService {
                 onAsyncFailure // <--- Sender med oppryddings-jobben
         );
 
+        // Ekstra failsafe: rull tilbake etter tidsfrist hvis device aldri rapporterer
+        // ferdig
+        scheduleStartTimeout(savedProgram.getId());
+
         return programResponseMapper.toSummary(savedProgram);
     }
 
@@ -174,6 +184,47 @@ public class ProgramService {
             Program savedProgram = programRepository.save(p);
             eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
         });
+    }
+
+    private void scheduleStartTimeout(long programId) {
+        scheduler.schedule(() -> self.revertIfStillTryingToStart(programId),
+                TRYING_TO_START_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void revertIfStillTryingToStart(long programId) {
+        programRepository.findById(programId).ifPresent(p -> {
+            if (p.getStatus() == Status.TRYING_TO_START) {
+                log.warn("Program {} still TRYING_TO_START after {} minutes. Reverting to STOPPED.",
+                        p.getName(), TRYING_TO_START_TIMEOUT_MINUTES);
+                p.setStatus(Status.STOPPED);
+                Program savedProgram = programRepository.save(p);
+                eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
+            }
+        });
+    }
+
+    private void scheduleStopTimeout(long programId) {
+        scheduler.schedule(() -> self.revertIfStillTryingToStop(programId),
+                TRYING_TO_STOP_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void revertIfStillTryingToStop(long programId) {
+        programRepository.findById(programId).ifPresent(p -> {
+            if (p.getStatus() == Status.TRYING_TO_STOP) {
+                log.warn("Program {} still TRYING_TO_STOP after {} minutes. Forcing STOPPED.",
+                        p.getName(), TRYING_TO_STOP_TIMEOUT_MINUTES);
+                p.setStatus(Status.STOPPED);
+                Program savedProgram = programRepository.save(p);
+                eventPublisher.publishEvent(new ProgramStatusChangedEvent(this, savedProgram));
+            }
+        });
+    }
+
+    @jakarta.annotation.PreDestroy
+    public void shutdownScheduler() {
+        scheduler.shutdownNow();
     }
 
     @Transactional
@@ -196,6 +247,9 @@ public class ProgramService {
                 savedProgram.getDevice(),
                 SseEvent.STOP_PROGRAM,
                 new ProgramCommandDto(savedProgram.getId(), savedProgram.getFilename()));
+
+        // Ekstra failsafe: rull tilbake hvis stop aldri bekreftes
+        scheduleStopTimeout(savedProgram.getId());
 
         return programResponseMapper.toSummary(savedProgram);
     }

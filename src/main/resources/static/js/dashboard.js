@@ -4,10 +4,15 @@ import { errorFromResponse } from "./problem.js";
 await i18nReady;
 applyTranslations();
 
-const API_ROOT = "/remote-program-control/api/v1";
+const CONTEXT_PATH = (() => {
+    const raw = document.querySelector('meta[name="context-path"]')?.content || "";
+    if (raw === "/" || raw === "") return "";
+    return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+})();
+const API_ROOT = `${CONTEXT_PATH}/api/v1`;
 const DEVICES_URL = `${API_ROOT}/devices`;
 const PROGRAMS_URL = `${API_ROOT}/programs`;
-const DASHBOARD_EVENTS_URL = "/api/v1/dashboard/events";
+const DASHBOARD_EVENTS_URL = `${API_ROOT}/dashboard/events`;
 
 const deviceContainer = document.getElementById("device-container");
 const toastEl = document.getElementById("toast");
@@ -41,6 +46,21 @@ async function authFetch(url, options = {}) {
 function normalizeHref(href) {
     if (!href) return null;
     try {
+        const ctx = CONTEXT_PATH;
+        // If it's an absolute URL, return as is
+        if (/^https?:\/\//i.test(href)) {
+            return href;
+        }
+        // If it starts with context path already, return absolute with origin
+        if (ctx && href.startsWith(ctx + "/")) {
+            return new URL(href, window.location.origin).href;
+        }
+        // If it starts with a bare slash, prepend context path
+        if (href.startsWith("/")) {
+            const fixed = ctx + href;
+            return new URL(fixed, window.location.origin).href;
+        }
+        // relative path, let URL resolve
         return new URL(href, window.location.origin).href;
     } catch (_) {
         return href;
@@ -230,7 +250,8 @@ async function handleProgramAction(programId, rel, href, button) {
 }
 
 async function handleProgramUpdate(programId, href, button) {
-    const target = `/programs/${programId}/edit`;
+    const ctx = CONTEXT_PATH;
+    const target = normalizeHref(href) || `${ctx}/programs/${programId}/edit`;
     window.location.href = target;
 }
 
@@ -240,7 +261,8 @@ async function handleDeviceAction(deviceId, action, href, button) {
 
     if (action === "update") {
         // Navigate to the edit page instead of the API endpoint
-        window.location.href = `/devices/${deviceId}/edit`;
+        const ctx = CONTEXT_PATH;
+        window.location.href = `${ctx}/devices/${deviceId}/edit`;
         return;
     }
 
@@ -349,7 +371,12 @@ function initSse() {
         }
     }
 
-    es = new EventSource(DASHBOARD_EVENTS_URL);
+    const token = getAccessToken();
+    const sseUrl = token
+        ? `${DASHBOARD_EVENTS_URL}?access_token=${encodeURIComponent(token)}`
+        : DASHBOARD_EVENTS_URL;
+
+    es = new EventSource(sseUrl);
 
     es.addEventListener("DEVICE_STATUS", (evt) => {
         try {

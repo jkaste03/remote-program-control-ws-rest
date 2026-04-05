@@ -3,9 +3,11 @@ package com.github.jkaste03.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 import com.github.jkaste03.model.Role;
 import com.github.jkaste03.model.User;
@@ -19,6 +21,7 @@ public class UserProvisioningService {
 	private final UserRepository userRepo;
 	private final RoleRepository roleRepo;
 	private static final String DEFAULT_ROLE_NAME = AppRoles.USER;
+	private final PasswordEncoder passwordEncoder;
 
 	/*
 	 * Vi trenger en referanse til "oss selv" (proxyen) for å kunne kalle
@@ -30,9 +33,10 @@ public class UserProvisioningService {
 	@Lazy
 	private UserProvisioningService self;
 
-	public UserProvisioningService(UserRepository userRepo, RoleRepository roleRepo) {
+	public UserProvisioningService(UserRepository userRepo, RoleRepository roleRepo, PasswordEncoder passwordEncoder) {
 		this.userRepo = userRepo;
 		this.roleRepo = roleRepo;
+		this.passwordEncoder = passwordEncoder;
 	}
 
 	/**
@@ -90,7 +94,10 @@ public class UserProvisioningService {
 				.orElseThrow(() -> new IllegalStateException("System configuration error: Required role '"
 						+ DEFAULT_ROLE_NAME + "' not found in database."));
 
-		User user = new User(principal.id(), principal.email(), principal.username(), role);
+		// Generate a random password so the record satisfies DB constraints.
+		String randomPassword = UUID.randomUUID().toString();
+		User user = new User(principal.id(), principal.email(), principal.username(), role,
+				passwordEncoder.encode(randomPassword));
 
 		// saveAndFlush tvinger databasen til å kjøre INSERT umiddelbart,
 		// slik at vi får en eventuell kræsj her og nå (inne i try-blokken).

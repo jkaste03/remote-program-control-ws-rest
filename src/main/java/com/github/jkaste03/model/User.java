@@ -29,9 +29,8 @@ public class User {
 	@Column(nullable = false, length = 255, unique = true)
 	private String username;
 
-	// @Column(nullable = false, length = 64)
-	// @JsonIgnore
-	// private String password;
+	@Column(name = "password_hash", nullable = false, length = 255)
+	private String password;
 
 	@ManyToOne(optional = false, fetch = FetchType.LAZY)
 	@JoinColumn(name = "role_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_role"))
@@ -42,10 +41,15 @@ public class User {
 		/* for JPA */ }
 
 	public User(UUID id, String email, String username, Role role) {
+		this(id, email, username, role, null);
+	}
+
+	public User(UUID id, String email, String username, Role role, String password) {
 		this.id = id;
 		this.email = email;
 		this.username = username;
 		this.role = role;
+		this.password = password;
 	}
 
 	public UUID getId() {
@@ -66,6 +70,14 @@ public class User {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
 	}
 
 	public Role getRole() {

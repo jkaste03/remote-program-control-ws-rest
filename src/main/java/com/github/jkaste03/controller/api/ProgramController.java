@@ -27,7 +27,7 @@ import jakarta.validation.Valid;
 
 @PreAuthorize("isAuthenticated()")
 @RestController
-@RequestMapping("/remote-program-control/api/v1/programs")
+@RequestMapping("/api/v1/programs")
 public class ProgramController {
 
     private final ProgramService programService;
