@@ -27,3 +27,6 @@ desktop.ini
 prod.env
 
 kc-dev.ps1
+
+gitleaks.exe
+replacements.txt
