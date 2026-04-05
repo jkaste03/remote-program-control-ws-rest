@@ -30,3 +30,4 @@ kc-dev.ps1
 target/
 
 gitleaks.exe
+replacements.txt
