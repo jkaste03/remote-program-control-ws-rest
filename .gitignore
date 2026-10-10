@@ -26,7 +26,6 @@ desktop.ini
 .env.*
 prod.env
 
-kc-dev.ps1
 target/
 
 gitleaks.exe

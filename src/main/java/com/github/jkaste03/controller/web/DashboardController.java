@@ -4,6 +4,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.github.jkaste03.security.UserPrincipal;
@@ -24,8 +25,9 @@ public class DashboardController {
     @GetMapping("/")
     public String index(
             @AuthenticationPrincipal UserPrincipal user,
+            @RequestParam(required = false) String logout,
             Model model) {
-        if (user != null) {
+        if (user != null && logout == null) {
             model.addAttribute("accessToken", jwtService.createAccessToken(user));
         }
         return "index";

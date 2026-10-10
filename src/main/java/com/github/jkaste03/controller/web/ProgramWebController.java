@@ -5,6 +5,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.github.jkaste03.security.JwtService;
 import com.github.jkaste03.security.UserPrincipal;
@@ -22,9 +23,10 @@ public class ProgramWebController {
     public String editProgramPage(
             @PathVariable long id,
             @AuthenticationPrincipal UserPrincipal user,
+            @RequestParam(required = false) String logout,
             Model model) {
 
-        if (user != null) {
+        if (user != null && logout == null) {
             model.addAttribute("accessToken", jwtService.createAccessToken(user));
         }
 

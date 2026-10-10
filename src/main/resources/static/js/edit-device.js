@@ -6,6 +6,12 @@ applyTranslations();
 
 const deviceId = document.querySelector('meta[name="device-id"]').content;
 const accessToken = document.querySelector('meta[name="access-token"]').content;
+const contextPath = (() => {
+    const raw = document.querySelector('meta[name="context-path"]')?.content || "";
+    if (raw === "/" || raw === "") return "";
+    return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+})();
+const deviceUrl = `${contextPath}/api/v1/devices/${deviceId}`;
 
 const form = document.getElementById("edit-device-form");
 const toast = document.getElementById("toast");
@@ -13,7 +19,7 @@ const toast = document.getElementById("toast");
 // Fetch device details on load
 async function fetchDeviceDetails() {
     try {
-        const response = await fetch(`/remote-program-control/api/v1/devices/${deviceId}`, {
+        const response = await fetch(deviceUrl, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
             },
@@ -50,7 +56,7 @@ form.addEventListener("submit", async (e) => {
     };
 
     try {
-        const response = await fetch(`/remote-program-control/api/v1/devices/${deviceId}`, {
+        const response = await fetch(deviceUrl, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -71,7 +77,7 @@ form.addEventListener("submit", async (e) => {
 
         // Optional: Redirect back after delay
         setTimeout(() => {
-            window.location.href = "/";
+            window.location.href = `${contextPath}/`;
         }, 1500);
     } catch (error) {
         showToast(error.message || t("device.error.update"), "error");

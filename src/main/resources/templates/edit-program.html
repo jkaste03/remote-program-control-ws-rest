@@ -6,6 +6,7 @@
         <title data-i18n="program.edit.pageTitle">Edit Program - Remote Program Control</title>
         <meta name="access-token" th:content="${accessToken}" content="" />
         <meta name="program-id" th:content="${programId}" content="" />
+        <meta name="context-path" th:content="@{/}" content="/" />
         <meta name="locale" th:content="${#locale}" content="en" />
         <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css" />
     </head>
@@ -18,7 +19,10 @@
                 </div>
                 <div class="user-box">
                     <span class="user-name" th:text="${#authentication.name}">User</span>
-                    <a class="logout" href="/logout" data-i18n="common.logout">Logout</a>
+                    <form class="logout-form" method="post" th:action="@{/logout}" action="/logout">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <button class="logout" type="submit" data-i18n="common.logout">Logout</button>
+                    </form>
                 </div>
             </header>
 
@@ -69,7 +73,7 @@
                     </div>
 
                     <div class="button-group">
-                        <a href="/" class="btn btn-secondary" data-i18n="common.cancel">Cancel</a>
+                        <a th:href="@{/}" href="/" class="btn btn-secondary" data-i18n="common.cancel">Cancel</a>
                         <button type="submit" class="btn btn-primary" data-i18n="common.saveChanges">
                             Save changes
                         </button>

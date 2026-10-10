@@ -111,7 +111,7 @@ public class DeviceService {
 
         int wolPort = resolveWakeOnLanPort(createRequest.wakeOnLanPort());
         Device device = new Device(deviceName, publicIp, wolPort, macAddress, owner);
-        Device savedDevice = deviceRepository.save(device);
+        Device savedDevice = deviceRepository.saveAndFlush(device);
 
         return toDeviceDetailsResponse(savedDevice, false);
     }

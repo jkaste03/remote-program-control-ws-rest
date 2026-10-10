@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
@@ -74,6 +76,28 @@ public class ApiExceptionHandler {
 		pd.setDetail(msg(ex.messageKey(), locale, ex.messageArgs()));
 		pd.setInstance(requestInstance(request));
 		pd.setProperty("code", ex.messageKey());
+		return pd;
+	}
+
+	@ExceptionHandler(BadCredentialsException.class)
+	public ProblemDetail handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+		pd.setTitle("Authentication failed");
+		pd.setDetail("The username or password is incorrect.");
+		pd.setInstance(requestInstance(request));
+		return pd;
+	}
+
+	@ExceptionHandler(DataIntegrityViolationException.class)
+	public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex,
+			HttpServletRequest request) {
+		log.error("Database constraint violation at: {}", request.getRequestURI(), ex);
+		ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+		pd.setType(CONFLICT_TYPE);
+		pd.setTitle("Could not save the device");
+		pd.setDetail("The device could not be saved because it conflicts with existing database data. "
+				+ "Check the server log for the exact constraint.");
+		pd.setInstance(requestInstance(request));
 		return pd;
 	}
 

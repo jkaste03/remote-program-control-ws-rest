@@ -6,6 +6,12 @@ applyTranslations();
 
 const programId = document.querySelector('meta[name="program-id"]').content;
 const accessToken = document.querySelector('meta[name="access-token"]').content;
+const contextPath = (() => {
+    const raw = document.querySelector('meta[name="context-path"]')?.content || "";
+    if (raw === "/" || raw === "") return "";
+    return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+})();
+const apiRoot = `${contextPath}/api/v1`;
 
 const form = document.getElementById("edit-program-form");
 const toast = document.getElementById("toast");
@@ -125,7 +131,7 @@ async function searchUsers(query) {
     }
 
     try {
-        const url = `/remote-program-control/api/v1/users/search?q=${encodeURIComponent(trimmed)}&limit=10`;
+        const url = `${apiRoot}/users/search?q=${encodeURIComponent(trimmed)}&limit=10`;
         const response = await authFetch(url);
         if (!response.ok) {
             throw await errorFromResponse(response, t("program.search.failed"));
@@ -150,7 +156,7 @@ function hydrateSelectedUsers(program) {
 
 async function fetchProgramDetails() {
     try {
-        const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}`);
+        const response = await authFetch(`${apiRoot}/programs/${programId}`);
         if (!response.ok) {
             throw await errorFromResponse(response, t("program.error.fetch"));
         }
@@ -183,7 +189,7 @@ form.addEventListener("submit", async (e) => {
     }
 
     try {
-        const response = await authFetch(`/remote-program-control/api/v1/programs/${programId}`, {
+        const response = await authFetch(`${apiRoot}/programs/${programId}`, {
             method: "PUT",
             body: JSON.stringify(getPayload()),
         });
@@ -199,7 +205,7 @@ form.addEventListener("submit", async (e) => {
 
         showToast(t("program.toast.updateSuccess"), "success");
         setTimeout(() => {
-            window.location.href = "/";
+            window.location.href = `${contextPath}/`;
         }, 1200);
     } catch (error) {
         showToast(error.message || t("program.error.update"), "error");

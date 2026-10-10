@@ -251,8 +251,8 @@ async function handleProgramAction(programId, rel, href, button) {
 
 async function handleProgramUpdate(programId, href, button) {
     const ctx = CONTEXT_PATH;
-    const target = normalizeHref(href) || `${ctx}/programs/${programId}/edit`;
-    window.location.href = target;
+    // The HATEOAS "self" link points to the API resource, not the edit page.
+    window.location.href = `${ctx}/programs/${programId}/edit`;
 }
 
 async function handleDeviceAction(deviceId, action, href, button) {

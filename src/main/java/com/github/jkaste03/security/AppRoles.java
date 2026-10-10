@@ -2,7 +2,7 @@ package com.github.jkaste03.security;
 
 public final class AppRoles {
 
-    // Grunnleggende rollenavn (slik de ligger i databasen/Keycloak)
+    // Grunnleggende rollenavn slik de ligger i den lokale databasen
     public static final String ADMIN = "ADMIN";
     public static final String USER = "USER";
 

@@ -16,6 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.core.annotation.Order;
 
 import jakarta.servlet.DispatcherType;
 
@@ -55,6 +56,7 @@ public class ApplicationSecurity {
 
 	@Bean
 	@ConditionalOnProperty(value = "spring.h2.console.enabled", havingValue = "true")
+	@Order(0)
 	public SecurityFilterChain h2SecurityFilterChain(HttpSecurity http) throws Exception {
 		http.securityMatcher(PathRequest.toH2Console())
 				.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
@@ -65,13 +67,16 @@ public class ApplicationSecurity {
 	}
 
     @Bean
+    @Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtService, userDetailsService);
         http.securityMatcher(new OrRequestMatcher(
                 new AntPathRequestMatcher("/remote-program-control/api/**"),
                 new AntPathRequestMatcher("/api/**")))
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Browser requests share the form-login session, while the agent can still
+                // authenticate with a Bearer JWT through JwtAuthenticationFilter.
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .anyRequest().authenticated())
@@ -82,6 +87,7 @@ public class ApplicationSecurity {
     }
 
     @Bean
+    @Order(2)
     public SecurityFilterChain mainSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf
