@@ -21,6 +21,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.github.jkaste03.event.DeviceStatusChangedEvent;
 import com.github.jkaste03.event.ProgramStatusChangedEvent;
+import com.github.jkaste03.event.WhitelistChangedEvent;
 import com.github.jkaste03.model.Device;
 import com.github.jkaste03.model.Program;
 import com.github.jkaste03.repository.DeviceRepository;
@@ -92,6 +93,14 @@ public class SseService {
         emitter.onError(e -> remove.run());
     }
 
+    public void sendWhitelistChanged(Program program) {
+        SseEmitter emitter = emitters.get(program.getDevice().getId());
+        if (emitter != null) {
+            sendToEmitter(program.getDevice().getId(), emitter, SseEvent.WHITELIST_CHANGED,
+                    Map.of("programId", program.getId(), "filename", program.getFilename()));
+        }
+    }
+
     @TransactionalEventListener
     public void handleDeviceStatusChanged(DeviceStatusChangedEvent event) {
         Device device = event.getDevice();
@@ -117,6 +126,12 @@ public class SseService {
         if (program.getStatus() == Program.Status.STOPPED) {
             checkAndScheduleShutdown(program.getDevice().getId());
         }
+
+    }
+
+    @TransactionalEventListener
+    public void handleWhitelistChanged(WhitelistChangedEvent event) {
+        sendWhitelistChanged(event.getProgram());
     }
 
     private void checkAndScheduleShutdown(Long deviceId) {

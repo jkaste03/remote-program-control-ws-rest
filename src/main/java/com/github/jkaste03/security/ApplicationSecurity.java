@@ -93,6 +93,8 @@ public class ApplicationSecurity {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/auth/**"))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, exception) ->
+                        response.sendRedirect(request.getContextPath() + "/login")))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
                         .requestMatchers("/.well-known/**").permitAll()
@@ -102,11 +104,16 @@ public class ApplicationSecurity {
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
+                        .failureHandler((request, response, exception) -> {
+                            response.setStatus(302);
+                            response.setHeader("Location", request.getContextPath() + "/login?error");
+                        })
                         .successHandler((request, response, authentication) -> {
                             String ctx = request.getContextPath();
                             if (ctx == null) ctx = "";
                             if (!ctx.endsWith("/")) ctx += "/";
-                            response.sendRedirect(ctx);
+                            response.setStatus(302);
+                            response.setHeader("Location", ctx);
                         })
                         .permitAll())
                 .logout(logout -> logout.logoutUrl("/logout")

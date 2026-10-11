@@ -141,4 +141,10 @@ public class DeviceController {
 
         return emitter;
     }
+
+    @GetMapping("/{id}/whitelist")
+    public List<String> getWhitelist(@PathVariable long id, @RequestParam String filename,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return deviceService.getWhitelist(id, filename, principal.id());
+    }
 }

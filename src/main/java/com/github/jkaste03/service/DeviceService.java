@@ -125,6 +125,20 @@ public class DeviceService {
         return toDeviceDetailsResponse(device, includePrograms);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getWhitelist(long deviceId, String filename, UUID userId) {
+        Device device = requireOwnedDevice(deviceId, userId);
+        Program program = programRepository.findByDeviceIdAndFilename(device.getId(), filename)
+                .orElseThrow(() -> new ResourceNotFoundException("problem.not-found.program", filename));
+
+        return java.util.stream.Stream.concat(
+                java.util.stream.Stream.of(device.getOwner().getUsername()),
+                program.getAllowedUsers().stream().map(User::getUsername))
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
     @Transactional
     public @NonNull DeviceResponse updateDevice(long id, DeviceCreateRequest updateRequest, UUID userId) {
         Device device = getOwnedDeviceWithOwner(id, userId);

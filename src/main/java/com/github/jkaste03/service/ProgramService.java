@@ -23,6 +23,7 @@ import com.github.jkaste03.dto.request.ProgramCreateUpdateRequest;
 import com.github.jkaste03.dto.response.ProgramCommandDto;
 import com.github.jkaste03.dto.response.ProgramResponse;
 import com.github.jkaste03.event.ProgramStatusChangedEvent;
+import com.github.jkaste03.event.WhitelistChangedEvent;
 import com.github.jkaste03.exceptions.ConflictException;
 import com.github.jkaste03.exceptions.ForbiddenException;
 import com.github.jkaste03.exceptions.ResourceNotFoundException;
@@ -111,6 +112,7 @@ public class ProgramService {
             program.clearAllowedUsers();
         }
 
+        eventPublisher.publishEvent(new WhitelistChangedEvent(this, program));
         return programResponseMapper.toDetailed(program);
     }
 

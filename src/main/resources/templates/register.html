@@ -1,93 +1,101 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register - Remote Program Control</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css" />
-</head>
-<body>
-    <div class="page auth-page">
-        <header class="top-bar">
-            <div>
-                <p class="eyebrow">Remote Program Control</p>
-                <h1>Create account</h1>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="context-path" th:content="@{/}" content="/" />
+        <title>Register - Remote Program Control</title>
+        <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css" />
+    </head>
+    <body>
+        <div class="page auth-page">
+            <header class="top-bar">
+                <div>
+                    <p class="eyebrow">Remote Program Control</p>
+                    <h1>Create account</h1>
+                </div>
+            </header>
+
+            <div class="form-container">
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="username"
+                            >Username (use your Minecraft username if you plan to play on a Minecraft server)</label
+                        >
+                        <input type="text" id="username" name="username" minlength="3" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" minlength="8" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="password2">Confirm password</label>
+                        <input type="password" id="password2" name="password2" minlength="8" required />
+                    </div>
+
+                    <div id="reg-error" class="alert alert-error" style="display: none"></div>
+                    <div id="reg-success" class="alert alert-info" style="display: none"></div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <a class="btn" th:href="@{/login}" href="/login">Back to login</a>
+                    </div>
+                </form>
             </div>
-        </header>
-
-        <div class="form-container">
-            <form id="register-form">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required />
-                </div>
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" minlength="3" required />
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" minlength="8" required />
-                </div>
-                <div class="form-group">
-                    <label for="password2">Confirm password</label>
-                    <input type="password" id="password2" name="password2" minlength="8" required />
-                </div>
-
-                <div id="reg-error" class="alert alert-error" style="display:none"></div>
-                <div id="reg-success" class="alert alert-info" style="display:none"></div>
-
-                <div class="button-group">
-                    <button type="submit" class="btn btn-primary">Register</button>
-                    <a class="btn" href="/login">Back to login</a>
-                </div>
-            </form>
         </div>
-    </div>
 
-    <script>
-        const form = document.getElementById("register-form");
-        const err = document.getElementById("reg-error");
-        const ok = document.getElementById("reg-success");
+        <script>
+            const form = document.getElementById("register-form");
+            const err = document.getElementById("reg-error");
+            const ok = document.getElementById("reg-success");
+            const contextPath = (() => {
+                const raw = document.querySelector('meta[name="context-path"]')?.content || "";
+                if (raw === "/" || raw === "") return "";
+                return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+            })();
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            err.style.display = "none";
-            ok.style.display = "none";
-            try {
-                if (form.password.value !== form.password2.value) {
-                    throw new Error("Passwords do not match");
-                }
-                const body = {
-                    email: form.email.value.trim(),
-                    username: form.username.value.trim(),
-                    password: form.password.value
-                };
-                const resp = await fetch("/auth/register", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(body)
-                });
-                if (!resp.ok) {
-                    // Try to extract ProblemDetail "detail"
-                    let message = "Registration failed";
-                    try {
-                        const problem = await resp.json();
-                        message = problem.detail || problem.title || message;
-                    } catch (_) {
-                        const text = await resp.text();
-                        if (text) message = text;
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                err.style.display = "none";
+                ok.style.display = "none";
+                try {
+                    if (form.password.value !== form.password2.value) {
+                        throw new Error("Passwords do not match");
                     }
-                    throw new Error(message);
+                    const body = {
+                        email: form.email.value.trim(),
+                        username: form.username.value.trim(),
+                        password: form.password.value,
+                    };
+                    const resp = await fetch(`${contextPath}/auth/register`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    });
+                    if (!resp.ok) {
+                        // Try to extract ProblemDetail "detail"
+                        let message = "Registration failed";
+                        try {
+                            const problem = await resp.json();
+                            message = problem.detail || problem.title || message;
+                        } catch (_) {
+                            const text = await resp.text();
+                            if (text) message = text;
+                        }
+                        throw new Error(message);
+                    }
+                    ok.textContent = "Registration successful. Redirecting to login...";
+                    ok.style.display = "";
+                    setTimeout(() => (window.location = `${contextPath}/login?registered=1`), 800);
+                } catch (error) {
+                    err.textContent = error.message;
+                    err.style.display = "";
                 }
-                ok.textContent = "Registration successful. Redirecting to login...";
-                ok.style.display = "";
-                setTimeout(() => window.location = "/login?registered=1", 800);
-            } catch (error) {
-                err.textContent = error.message;
-                err.style.display = "";
-            }
-        });
-    </script>
-</body>
+            });
+        </script>
+    </body>
 </html>

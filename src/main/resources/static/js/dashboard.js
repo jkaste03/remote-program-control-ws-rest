@@ -31,7 +31,9 @@ function getAccessToken() {
 
 async function authFetch(url, options = {}) {
     const headers = new Headers(options.headers || {});
-    headers.set("Accept", "application/hal+json");
+    if (!headers.has("Accept")) {
+        headers.set("Accept", "application/hal+json");
+    }
     const token = getAccessToken();
     if (token) {
         headers.set("Authorization", `Bearer ${token}`);

@@ -22,7 +22,7 @@ public class DashboardController {
         this.jwtService = jwtService;
     }
 
-    @GetMapping("/")
+    @GetMapping({"/", "/dashboard"})
     public String index(
             @AuthenticationPrincipal UserPrincipal user,
             @RequestParam(required = false) String logout,
@@ -31,6 +31,12 @@ public class DashboardController {
             model.addAttribute("accessToken", jwtService.createAccessToken(user));
         }
         return "index";
+    }
+
+    @GetMapping("/profile")
+    public String profile(@AuthenticationPrincipal UserPrincipal user, Model model) {
+        model.addAttribute("accessToken", jwtService.createAccessToken(user));
+        return "profile";
     }
 
     @GetMapping("/api/v1/dashboard/events")
