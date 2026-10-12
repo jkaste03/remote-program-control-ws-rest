@@ -36,7 +36,6 @@ import com.github.jkaste03.service.DeviceService;
 import com.github.jkaste03.service.SseService;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -124,7 +123,7 @@ public class DeviceController {
 
     @PutMapping("/{id}/programs/sync")
     public EntityModel<DeviceResource> syncPrograms(@PathVariable long id,
-            @RequestBody @NotEmpty @Valid List<ProgramSyncRequest> programs,
+            @RequestBody @Valid List<ProgramSyncRequest> programs,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         DeviceResponse device = deviceService.syncPrograms(id, programs, principal.id());
