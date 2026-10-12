@@ -1,5 +1,7 @@
 package com.github.jkaste03.security;
 
+import java.util.List;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +18,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.core.annotation.Order;
 
 import jakarta.servlet.DispatcherType;
@@ -24,47 +29,59 @@ import jakarta.servlet.DispatcherType;
 @EnableMethodSecurity
 public class ApplicationSecurity {
 
-	private final LocalUserDetailsService userDetailsService;
-	private final JwtService jwtService;
-	private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final LocalUserDetailsService userDetailsService;
+    private final JwtService jwtService;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
-	public ApplicationSecurity(LocalUserDetailsService userDetailsService,
-			JwtService jwtService,
-			RestAuthenticationEntryPoint restAuthenticationEntryPoint) {
-		this.userDetailsService = userDetailsService;
-		this.jwtService = jwtService;
-		this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
-	}
+    public ApplicationSecurity(LocalUserDetailsService userDetailsService,
+            JwtService jwtService,
+            RestAuthenticationEntryPoint restAuthenticationEntryPoint) {
+        this.userDetailsService = userDetailsService;
+        this.jwtService = jwtService;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+    }
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-	@Bean
-	public DaoAuthenticationProvider authenticationProvider() {
-		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-		provider.setUserDetailsService(userDetailsService);
-		provider.setPasswordEncoder(passwordEncoder());
-		return provider;
-	}
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
 
-	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-		return configuration.getAuthenticationManager();
-	}
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
+    }
 
-	@Bean
-	@ConditionalOnProperty(value = "spring.h2.console.enabled", havingValue = "true")
-	@Order(0)
-	public SecurityFilterChain h2SecurityFilterChain(HttpSecurity http) throws Exception {
-		http.securityMatcher(PathRequest.toH2Console())
-				.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-				.csrf(csrf -> csrf.disable())
-				.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS));
-		return http.build();
-	}
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration cfg = new CorsConfiguration();
+        cfg.setAllowedOrigins(List.of("https://www.fotcalc.com", "https://fotcalc.com"));
+        cfg.setAllowedMethods(List.of("GET"));
+        cfg.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/v1/dashboard/events", cfg);
+        return source;
+    }
+
+    @Bean
+    @ConditionalOnProperty(value = "spring.h2.console.enabled", havingValue = "true")
+    @Order(0)
+    public SecurityFilterChain h2SecurityFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher(PathRequest.toH2Console())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS));
+        return http.build();
+    }
 
     @Bean
     @Order(1)
@@ -74,6 +91,7 @@ public class ApplicationSecurity {
                 new AntPathRequestMatcher("/remote-program-control/api/**"),
                 new AntPathRequestMatcher("/api/**")))
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // Browser requests share the form-login session, while the agent can still
                 // authenticate with a Bearer JWT through JwtAuthenticationFilter.
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
@@ -93,12 +111,15 @@ public class ApplicationSecurity {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/auth/**"))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, exception) ->
-                        response.sendRedirect(request.getContextPath() + "/login")))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, exception) -> response
+                                .sendRedirect(request.getContextPath() + "/login")))
                 .authorizeHttpRequests(auth -> auth
-                        .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
+                        .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR)
+                        .permitAll()
                         .requestMatchers("/.well-known/**").permitAll()
-                        .requestMatchers("/auth/**", "/login", "/register", "/error", "/favicon.ico",
+                        .requestMatchers("/auth/**", "/login", "/register", "/error",
+                                "/favicon.ico",
                                 "/css/**", "/js/**", "/i18n/**", "/images/**")
                         .permitAll()
                         .anyRequest().authenticated())
@@ -106,12 +127,15 @@ public class ApplicationSecurity {
                         .loginPage("/login")
                         .failureHandler((request, response, exception) -> {
                             response.setStatus(302);
-                            response.setHeader("Location", request.getContextPath() + "/login?error");
+                            response.setHeader("Location",
+                                    request.getContextPath() + "/login?error");
                         })
                         .successHandler((request, response, authentication) -> {
                             String ctx = request.getContextPath();
-                            if (ctx == null) ctx = "";
-                            if (!ctx.endsWith("/")) ctx += "/";
+                            if (ctx == null)
+                                ctx = "";
+                            if (!ctx.endsWith("/"))
+                                ctx += "/";
                             response.setStatus(302);
                             response.setHeader("Location", ctx);
                         })

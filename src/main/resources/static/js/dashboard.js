@@ -12,7 +12,9 @@ const CONTEXT_PATH = (() => {
 const API_ROOT = `${CONTEXT_PATH}/api/v1`;
 const DEVICES_URL = `${API_ROOT}/devices`;
 const PROGRAMS_URL = `${API_ROOT}/programs`;
-const DASHBOARD_EVENTS_URL = `${API_ROOT}/dashboard/events`;
+const SSE_API_ROOT = "https://api.fotcalc.com/remote-program-control/api/v1";
+
+const DASHBOARD_EVENTS_URL = `${SSE_API_ROOT}/dashboard/events`;
 
 const deviceContainer = document.getElementById("device-container");
 const toastEl = document.getElementById("toast");
@@ -47,25 +49,24 @@ async function authFetch(url, options = {}) {
 
 function normalizeHref(href) {
     if (!href) return null;
+
     try {
         const ctx = CONTEXT_PATH;
-        // If it's an absolute URL, return as is
-        if (/^https?:\/\//i.test(href)) {
-            return href;
+        const url = new URL(href, window.location.origin);
+
+        // Ensure that the context path is present
+        if (ctx && !url.pathname.startsWith(ctx + "/")) {
+            url.pathname = ctx + (url.pathname.startsWith("/") ? "" : "/") + url.pathname;
         }
-        // If it starts with context path already, return absolute with origin
-        if (ctx && href.startsWith(ctx + "/")) {
-            return new URL(href, window.location.origin).href;
+
+        // Route our API calls through the current origin (Netlify)
+        if (url.pathname.startsWith(ctx + "/api/")) {
+            return `${window.location.origin}${url.pathname}${url.search}${url.hash}`;
         }
-        // If it starts with a bare slash, prepend context path
-        if (href.startsWith("/")) {
-            const fixed = ctx + href;
-            return new URL(fixed, window.location.origin).href;
-        }
-        // relative path, let URL resolve
-        return new URL(href, window.location.origin).href;
+
+        return url.href;
     } catch (_) {
-        return href;
+        return null;
     }
 }
 
@@ -374,9 +375,7 @@ function initSse() {
     }
 
     const token = getAccessToken();
-    const sseUrl = token
-        ? `${DASHBOARD_EVENTS_URL}?access_token=${encodeURIComponent(token)}`
-        : DASHBOARD_EVENTS_URL;
+    const sseUrl = token ? `${DASHBOARD_EVENTS_URL}?access_token=${encodeURIComponent(token)}` : DASHBOARD_EVENTS_URL;
 
     es = new EventSource(sseUrl);
 

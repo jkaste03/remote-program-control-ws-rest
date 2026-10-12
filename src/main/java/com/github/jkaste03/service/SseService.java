@@ -313,6 +313,18 @@ public class SseService {
         });
     }
 
+    @Scheduled(fixedRate = 30000)
+    public void sendDashboardHeartbeat() {
+        dashboardEmitters.forEach((id, emitter) -> {
+            try {
+                emitter.send(
+                        SseEmitter.event().comment("keepalive"));
+            } catch (Exception e) {
+                dashboardEmitters.remove(id, emitter);
+            }
+        });
+    }
+
     // Legg til en Exception-klasse for å signalisere sendefeil
     public static class SseDeliveryException extends RuntimeException {
         public SseDeliveryException(String message) {
