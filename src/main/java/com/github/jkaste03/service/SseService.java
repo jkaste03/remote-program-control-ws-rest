@@ -33,7 +33,7 @@ public class SseService {
     private static final Logger log = LoggerFactory.getLogger(SseService.class);
 
     private static final long WAIT_TIMEOUT_SECONDS = 45;
-    private static final long GIVE_UP_TIMEOUT_SECONDS = 300; // 5 minutes
+    private static final long GIVE_UP_TIMEOUT_SECONDS = 150; // 2.5 minutes from the first WoL attempt
     private static final int MAX_ATTEMPTS = 2;
     private static final long SHUTDOWN_DELAY_SECONDS = 30;
 
@@ -217,8 +217,9 @@ public class SseService {
 
             long programId = extractProgramId(data);
             PendingKey key = new PendingKey(device.getId(), programId);
+            Instant firstAttempt = Instant.now();
             pendingCommands.put(key, new PendingCommand(
-                    device, programId, event, data, 1, Instant.now(), onFailure));
+                    device, programId, event, data, 1, firstAttempt, firstAttempt, onFailure));
         } else {
             // STOP or others -> fail fast
             log.warn("Cannot send event '{}' to offline device {}", event, device.getId());
@@ -262,8 +263,20 @@ public class SseService {
 
         pendingCommands.forEach((key, cmd) -> {
             long secondsSinceLastAttempt = ChronoUnit.SECONDS.between(cmd.lastAttempt(), now);
+            long secondsSinceFirstAttempt = ChronoUnit.SECONDS.between(cmd.firstAttempt(), now);
 
-            if (cmd.attemptCount() < MAX_ATTEMPTS && secondsSinceLastAttempt > WAIT_TIMEOUT_SECONDS) {
+            if (secondsSinceFirstAttempt > GIVE_UP_TIMEOUT_SECONDS) {
+                // Give up after the total time allowed for the device to come online
+                log.warn("Device {} program {} did not connect after {} attempts. Giving up command.", key.deviceId(),
+                        cmd.programId(),
+                        cmd.attemptCount());
+                pendingCommands.remove(key);
+
+                // Run callback
+                if (cmd.onFailure() != null) {
+                    cmd.onFailure().run();
+                }
+            } else if (cmd.attemptCount() < MAX_ATTEMPTS && secondsSinceLastAttempt > WAIT_TIMEOUT_SECONDS) {
                 // Retry (e.g. send a second WoL after 45 seconds)
                 log.info("Timeout waiting for device {} program {}. Attempt {}/{}", key.deviceId(), cmd.programId(),
                         cmd.attemptCount() + 1,
@@ -277,18 +290,7 @@ public class SseService {
                 // Update state
                 pendingCommands.put(key, new PendingCommand(
                         cmd.device(), cmd.programId(), cmd.event(), cmd.data(), cmd.attemptCount() + 1, Instant.now(),
-                        cmd.onFailure()));
-            } else if (cmd.attemptCount() >= MAX_ATTEMPTS && secondsSinceLastAttempt > GIVE_UP_TIMEOUT_SECONDS) {
-                // Give up after extended wait following the final attempt
-                log.warn("Device {} program {} did not connect after {} attempts. Giving up command.", key.deviceId(),
-                        cmd.programId(),
-                        MAX_ATTEMPTS);
-                pendingCommands.remove(key);
-
-                // Run callback
-                if (cmd.onFailure() != null) {
-                    cmd.onFailure().run();
-                }
+                        cmd.firstAttempt(), cmd.onFailure()));
             }
         });
     }
@@ -326,6 +328,7 @@ public class SseService {
             @NonNull Object data,
             int attemptCount,
             Instant lastAttempt,
+            Instant firstAttempt,
             Runnable onFailure // Run on timeout
     ) {
     }
