@@ -55,31 +55,47 @@ public class SseService {
         this.programRepository = programRepository;
     }
 
-    public void addEmitter(long deviceId, SseEmitter emitter) {
-        emitters.put(deviceId, emitter);
-        emitterConnectedAt.put(deviceId, Instant.now());
+    public synchronized void addEmitter(long deviceId, SseEmitter emitter) {
+        Instant connectedAt = Instant.now();
 
-        // 1. Enheten har koblet til -> Sett ONLINE
+        // Replace any previous stream for this device and close it. The old
+        // stream's callbacks must not remove the new stream from the map.
+        SseEmitter previousEmitter = emitters.put(deviceId, emitter);
+        emitterConnectedAt.put(deviceId, connectedAt);
+
         deviceService.updateDeviceStatus(deviceId, Device.Status.ONLINE);
         log.info("Device {} connected via SSE. Status set to ONLINE.", deviceId);
 
-        // 2. Rydd opp og sett OFFLINE når koblingen dør
-        Runnable removeAndSetOffline = () -> {
-            emitters.remove(deviceId);
-            emitterConnectedAt.remove(deviceId);
-            deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
-            log.info("Device {} disconnected. Status set to OFFLINE.", deviceId);
-        };
+        Runnable removeAndSetOffline = () -> removeEmitterIfCurrent(deviceId, emitter);
 
-        // Rydd opp når koblingen avsluttes (viktig for å unngå minnelekkasje)
         emitter.onCompletion(removeAndSetOffline);
         emitter.onTimeout(removeAndSetOffline);
         emitter.onError(e -> removeAndSetOffline.run());
 
         log.info("Device {} connected via SSE", deviceId);
 
+        if (previousEmitter != null && previousEmitter != emitter) {
+            log.info("Closing previous SSE connection for device {}", deviceId);
+            previousEmitter.complete();
+        }
+
         // Check: is there a pending command for this device?
         checkPendingAndExecute(deviceId);
+    }
+
+    /**
+     * Remove a stream only if it is still the active stream for this device.
+     * This prevents an older connection's callback from deleting a newer one.
+     */
+    private synchronized void removeEmitterIfCurrent(long deviceId, SseEmitter emitter) {
+        if (!emitters.remove(deviceId, emitter)) {
+            log.debug("Ignoring cleanup for superseded SSE connection of device {}", deviceId);
+            return;
+        }
+
+        emitterConnectedAt.remove(deviceId);
+        deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
+        log.info("Device {} disconnected. Status set to OFFLINE.", deviceId);
     }
 
     public void addDashboardEmitter(SseEmitter emitter) {
@@ -232,9 +248,8 @@ public class SseService {
             emitter.send(SseEmitter.event().name(event.eventName()).data(data));
             log.info("Sent event '{}' to device {}", event, deviceId);
         } catch (IOException e) {
-            log.warn("Failed to send event to device {}. Removing emitter.", deviceId);
-            emitters.remove(deviceId);
-            deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
+            log.warn("Failed to send event to device {}. Removing emitter if it is still current.", deviceId);
+            removeEmitterIfCurrent(deviceId, emitter);
             // Throw exception to make ProgramService's transaction rollback
             throw new SseDeliveryException("Failed to deliver SSE to device " + deviceId);
         }
@@ -305,10 +320,8 @@ public class SseService {
             try {
                 emitter.send(SseEmitter.event().name("PING").data("ping"));
             } catch (Exception e) {
-                log.info("Heartbeat failed for device {}. Marking as OFFLINE.", deviceId);
-                // Remove and update status immediately
-                emitters.remove(deviceId);
-                deviceService.updateDeviceStatus(deviceId, Device.Status.OFFLINE);
+                log.info("Heartbeat failed for device {}. Marking as OFFLINE if this stream is still current.", deviceId);
+                removeEmitterIfCurrent(deviceId, emitter);
             }
         });
     }
