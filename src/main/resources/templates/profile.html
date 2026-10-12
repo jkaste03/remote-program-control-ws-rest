@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" th:attr="lang=${#locale}">
     <head>
         <meta charset="UTF-8" />
@@ -30,9 +30,17 @@
             <div class="form-container">
                 <form id="profile-form">
                     <div class="form-group">
-                        <label for="profile-username">Username</label>
-                        <input id="profile-username" name="username" required minlength="3" maxlength="255"
-                               th:value="${#authentication.name}" />
+                        <label for="profile-username"
+                            >Username (use your Minecraft username if you plan to play on a Minecraft server)</label
+                        >
+                        <input
+                            id="profile-username"
+                            name="username"
+                            required
+                            minlength="3"
+                            maxlength="255"
+                            th:value="${#authentication.name}"
+                        />
                     </div>
                     <div class="button-group">
                         <a th:href="@{/}" href="/" class="btn btn-secondary">Cancel</a>
